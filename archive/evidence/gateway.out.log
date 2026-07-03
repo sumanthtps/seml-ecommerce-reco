@@ -1,0 +1,6 @@
+INFO:     127.0.0.1:51148 - "POST /activity HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51150 - "POST /activity HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51153 - "POST /activity HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51156 - "GET /recommend?user_id=u7&k=5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62448 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62448 - "GET /openapi.json HTTP/1.1" 200 OK

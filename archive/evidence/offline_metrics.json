@@ -1,0 +1,39 @@
+{
+  "sample_user": "u7",
+  "stats": {
+    "users": 60,
+    "items": 40,
+    "events_processed": 543,
+    "matrix_density": 0.2263,
+    "last_event_at": "2026-06-20T10:31:51+00:00"
+  },
+  "offline_metric": {
+    "metric": "Precision@5",
+    "value": 0.323,
+    "evaluated_users": 60,
+    "users_with_at_least_one_hit": 53,
+    "holdout_per_user": 3
+  },
+  "recommendations": [
+    {
+      "item_id": "P28",
+      "score": 10.027
+    },
+    {
+      "item_id": "P25",
+      "score": 9.243
+    },
+    {
+      "item_id": "P21",
+      "score": 8.805
+    },
+    {
+      "item_id": "P16",
+      "score": 6.136
+    },
+    {
+      "item_id": "P40",
+      "score": 5.802
+    }
+  ]
+}

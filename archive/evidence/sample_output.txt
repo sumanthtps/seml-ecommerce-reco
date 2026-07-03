@@ -1,0 +1,30 @@
+=== Recommendation service - sample run ===
+Dataset: 60 users x 40 items, overall matrix density 22.63%
+Offline Precision@5 (leave-three-out, synthetic interactions): 0.323
+Sample GET /recommend?user_id=u7&k=5 response:
+{
+  "user_id": "u7",
+  "strategy": "item-based-collaborative-filtering",
+  "recommendations": [
+    {
+      "item_id": "P28",
+      "score": 10.027
+    },
+    {
+      "item_id": "P25",
+      "score": 9.243
+    },
+    {
+      "item_id": "P21",
+      "score": 8.805
+    },
+    {
+      "item_id": "P16",
+      "score": 6.136
+    },
+    {
+      "item_id": "P40",
+      "score": 5.802
+    }
+  ]
+}

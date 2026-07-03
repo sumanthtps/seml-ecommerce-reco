@@ -1,0 +1,940 @@
+SEML Assignment I - E-commerce Recommendation End-to-End Guide
+Page 1
+ SEML Assignment I
+ End-to-End Completion Guide
+ Scenario 02: Real-Time Product Recommendation for an E-commerce Platform
+ Domain: E-commerce / Retail    |    Patterns: Event-Driven Architecture + API Gateway
+This guide explains how to divide the work into four parts, how to prepare the report, how to draw the
+GR4ML and architecture diagrams, how to implement the two architectural patterns, and what
+evidence/screenshots to include before final submission.
+Item
+Details
+Assignment
+AIMLCZG546 - Software Engineering for Machine Learning
+Weightage
+10 marks
+Submission
+30 June 2026, 23:00
+Expected file
+.pdf / .docx as per portal instructions
+Chosen application
+Real-time personalised product recommendation
+Use your own group number, names, BITS IDs, screenshots, and local run output before submission.
+
+
+SEML Assignment I - E-commerce Recommendation End-to-End Guide
+Page 2
+1. Assignment Understanding
+The assignment asks your group to apply software engineering principles to a machine learning
+application from requirements engineering to architecture and implementation. The selected scenario
+is a real-time product recommendation system for an e-commerce platform. The scoring naturally splits
+into two objectives: Objective 1 is Requirements Formulation for 5 marks, and Objective 2 is System
+Architecture and Implementation for 5 marks.
+The safest way to complete it is not to start coding first. First freeze the problem, measurable goals,
+GR4ML models, and architecture. Then implement only the code needed to prove the two selected
+patterns: Event-Driven Architecture and API Gateway.
+Assignment item
+What it means in this scenario
+Evidence to include
+Domain + problem
+statement
+E-commerce site must recommend products
+based on user interactions such as view,
+click, cart, and purchase.
+A clear paragraph explaining business need,
+ML problem type, input events, and output
+top-N list.
+Requirements +
+measurable goals
+Functional, non-functional, and measurable
+success criteria using GR4ML ideas such as
+goals, softgoals, indicators, and quality
+requirements.
+FR/NFR table and measurable goals table.
+GR4ML views
+Business View, Analytics Design View, and
+Data Preparation View for the
+recommendation system.
+Three diagrams + explanation below each
+diagram.
+System architecture
+Show client, API gateway, event tracking,
+broker, consumer, feature store,
+recommendation service, and cache.
+Architecture diagram with ML and non-ML
+components clearly marked.
+Two patterns
+Event-Driven Architecture for streaming
+user activity; API Gateway for one secured
+entry point.
+Pattern explanation, why selected, and
+where visible in code.
+Implementation
+Small working prototype that sends events,
+updates features, and returns
+recommendations through gateway.
+Code snippets, terminal output, Swagger
+screenshots, request/response screenshots.
+2. Four-Way Task Split
+Split the work exactly into four ownership streams. This matches the contribution table in the selected
+scenario and keeps the work balanced. Each member owns one stream, but everyone should review
+the final PDF once because the marks are for the integrated submission, not just individual sections.
+Member / Role
+Main responsibility
+Detailed tasks
+Final deliverable
+Member 1 -
+Requirements Lead
+Owns Objective 1 sections
+1.1, 1.2, and 1.4.
+Write domain and problem statement; prepare
+functional requirements; prepare non-functional
+requirements; define measurable goals; explain
+top three quality requirements.
+Sections 1.1, 1.2, 1.4 +
+contribution entry =
+25%.
+Member 2 - GR4ML
+Modelling Lead
+Owns Objective 1 section 1.3.
+Create Business View; create Analytics Design
+View; create Data Preparation View; explain
+each model and validate the links between
+goal, question, insight, algorithm, data, and
+preparation tasks.
+Section 1.3 + 3
+diagrams +
+contribution entry =
+25%.
+Member 3 -
+Architecture Lead
+Owns Objective 2 sections 2.1
+and 2.2.
+Draw system architecture; classify ML/non-ML
+components; explain data flow; justify
+Event-Driven Architecture and API Gateway;
+connect patterns to quality requirements.
+Sections 2.1, 2.2 +
+architecture diagram =
+25%.
+Member 4 -
+Implementation Lead
+Owns Objective 2 section 2.3.
+Create working prototype; implement event
+ingestion, consumer update, recommendation
+service, and gateway; run the system; capture
+screenshots and sample outputs; document
+code explanation.
+Section 2.3 + code +
+screenshots = 25%.
+Shared integration checklist
+
+
+SEML Assignment I - E-commerce Recommendation End-to-End Guide
+Page 3
+• Use one consistent application name: Real-Time Product Recommendation for an E-commerce
+Platform.
+• Use one consistent ML goal: rank catalogue items and serve personalised top-N recommendations.
+• Use the same event types everywhere: view, click, cart, purchase.
+• Use the same patterns everywhere: Event-Driven Architecture and API Gateway.
+• Make sure screenshots are from your own run, not only from the guide or sample document.
+• Before final upload, check that group number, names, BITS IDs, contribution percentages, code,
+screenshots, diagrams, and references are present.
+3. Recommended Timeline
+Day
+Work to complete
+Owner
+Day 1
+Create shared folder/repo, finalise group details, freeze chosen scenario and
+terminology.
+All
+Day 2
+Complete problem statement, requirements, measurable goals, and top quality
+requirements.
+Member 1
+Day 3
+Draw and review the three GR4ML views. Confirm every diagram has a short
+explanation.
+Member 2
+Day 4
+Draw architecture diagram and write pattern justifications.
+Member 3
+Day 5
+Implement and run the prototype. Capture Swagger, request/response, terminal, and
+output plot screenshots.
+Member 4
+Day 6
+Compile PDF, proofread, check mark mapping, export final file, and upload.
+All
+
+
+SEML Assignment I - E-commerce Recommendation End-to-End Guide
+Page 4
+4. Objective 1 - Requirements Formulation
+Objective 1 is worth 5 marks. The marker should be able to see a clear chain: business goal -> decision
+-> question -> insight -> analytics goal -> data preparation -> measurable success criteria. Do not
+write only generic ML theory. Always connect the explanation to e-commerce recommendation.
+4.1 Domain and Problem Statement
+Write the problem as a business problem first and an ML problem second. The business problem is
+revenue and engagement. The ML problem is ranking products for each user using interaction history.
+Suggested report text
+An e-commerce platform wants to increase revenue per shopping session by showing each shopper
+products they are likely to engage with or buy. User behaviour such as product views, clicks, add-to-cart
+actions, and purchases arrives continuously from the storefront. The system must convert this behaviour
+into a personalised top-N product list in near real time. Therefore, the application is framed as a
+recommendation/ranking problem: from the evolving user-item interaction history, rank catalogue items for
+a given user and serve the highest scoring products through the storefront.
+4.2 Requirement Specifications
+Type
+Requirement
+Why it matters
+How to verify
+Functional
+Capture user activity events: view,
+click, cart, purchase.
+Without events, the model cannot learn
+current user intent.
+POST sample events
+and check they reach
+event log/queue.
+Functional
+Update user-item interaction features
+continuously.
+Recent behaviour must affect
+recommendation scores.
+Send new events and
+show matrix/feature
+count changes.
+Functional
+Serve personalised top-N
+recommendations on request.
+This is the user-facing ML output.
+Call GET
+/recommend?user=u7
+and show JSON
+response.
+Functional
+Expose all client traffic through an API
+Gateway.
+The assignment selected API Gateway
+as one pattern.
+All external requests
+use gateway URL, not
+direct services.
+Non-functional
+Recommendation API should be fast.
+Recommendations appear while the
+page loads.
+Record p95 latency
+target < 150 ms in
+report; optionally time a
+request.
+Non-functional
+System should handle traffic spikes.
+Sales campaigns create bursty event
+volumes.
+Explain broker/queue
+decoupling and
+consumer scaling.
+Non-functional
+Feature freshness should be under 60
+seconds.
+Stale recommendations reduce
+relevance.
+Show event-to-feature
+lag target and
+consumer update flow.
+Non-functional
+Recommendation list should cover
+broad catalogue, not only best sellers.
+Improves discovery and user trust.
+Track coverage target
+>= 60%.
+4.3 Measurable Goals
+Goal
+Metric
+Target
+Meaning
+Relevant top-N
+Precision@5
+>= 0.30
+At least 30% of the top 5
+recommended products should be
+relevant.
+Business uplift
+CTR uplift vs non-personalised
+>= 8%
+Personalised recommendations
+should produce more clicks than a
+generic list.
+Real-time serving
+Recommend API p95 latency
+< 150 ms
+95% of recommendation calls should
+be fast enough for page rendering.
+
+
+SEML Assignment I - E-commerce Recommendation End-to-End Guide
+Page 5
+Goal
+Metric
+Target
+Meaning
+Freshness
+Event-to-feature lag
+< 60 s
+New user interactions should affect
+features quickly.
+Catalogue reach
+Coverage of catalogue
+>= 60%
+Recommendations should not be
+limited to a tiny set of popular
+products.
+Tip: In the implementation you do not have to prove real CTR uplift using production users. For an academic
+prototype, define the metric and show how the architecture would collect the data. For the demo, show the
+API response and explain that offline evaluation or A/B testing would measure Precision@5 and CTR in a real
+deployment.
+4.4 Top Three Quality Requirements
+Quality requirement
+Justification
+Design decision influenced
+Low latency
+Recommendations are rendered inline while the
+shopper is browsing. A slow recommendation API
+damages page experience.
+Precompute item similarity; cache
+top-N; use gateway routing; keep
+recommendation service stateless
+where possible.
+Scalability / elasticity
+Traffic is bursty during sales and campaigns.
+Event ingestion should not block
+recommendation serving.
+Use event-driven design with
+broker/queue; allow multiple
+consumers; decouple tracking from
+model update.
+Recommendation quality
+/ relevance
+Poor recommendations waste screen space and
+reduce user trust.
+Use user-item interaction matrix,
+item similarity, filtering of
+already-seen items, and monitoring
+of precision and coverage.
+
+
+SEML Assignment I - E-commerce Recommendation End-to-End Guide
+Page 6
+5. GR4ML Views - What to Draw and Explain
+GR4ML diagrams should not be decorative. They show how business strategy leads to an analytics
+solution and then to data preparation. In your report, place each diagram first and then explain the
+diagram in 5-7 sentences.
+5.1 Business View
+ Figure 1: Business View for the selected e-commerce recommendation scenario.
+How to explain it: The strategic goal is to increase revenue per session through cross-sell. This goal is
+measured by business indicators such as click-through rate and average order value. The business
+decision is which products to show to a shopper. The decision is informed by the question: what items
+will this user most likely engage with? The insight that answers the question is a personalised top-N
+recommendation list delivered in real time.
+5.2 Analytics Design View
+
+
+SEML Assignment I - E-commerce Recommendation End-to-End Guide
+Page 7
+ Figure 2: Analytics Design View showing the prediction goal and algorithm trade-offs.
+How to explain it: The insight from the Business View becomes a prediction analytics goal: rank items
+by user preference. Candidate algorithms include item-based collaborative filtering, matrix
+factorisation, and content-based filtering. Low latency and recommendation quality are the main
+softgoals. Item-based collaborative filtering is selected for the real-time path because item similarity
+can be precomputed and serving can be fast. Matrix factorisation may improve quality but has higher
+complexity, so it can be described as a future enhancement.
+5.3 Data Preparation View
+ Figure 3: Data Preparation View from raw events to prepared ranking features.
+How to explain it: The data sources are user activity events, orders, and product catalogue metadata.
+Preparation tasks include deduplicating repeated events, converting actions into numeric weights,
+building a user-item interaction matrix, computing item-item similarity, and filtering already-seen
+products. The prepared outputs are the interaction matrix and item-similarity table, which feed the
+item ranking goal.
+
+
+SEML Assignment I - E-commerce Recommendation End-to-End Guide
+Page 8
+6. Objective 2 - System Architecture
+Objective 2 is worth 5 marks. The architecture must show both ML and non-ML components. A common
+mistake is drawing only ML model boxes. For this assignment, show the real software system: client,
+gateway, event service, broker, consumer, feature store, recommendation service, and cache.
+6.1 Architecture Diagram
+ Figure 4: System Architecture for real-time product recommendation.
+Component
+Type
+Responsibility
+Storefront (Web/Mobile)
+External
+Emits activity events and renders recommendations.
+API Gateway
+Non-ML
+Single entry point for routing, authentication, and rate-limiting.
+Event Tracking Service
+Non-ML
+Validates user activity and publishes events.
+Message Broker / Queue
+Non-ML
+Durable transport for user-events; decouples producers and
+consumers.
+Event Consumer / Updater
+Non-ML
+Reads events asynchronously and updates features.
+Feature Store
+Data store
+Stores user-item matrix and item-similarity table.
+Recommendation Service
+ML component
+Ranks candidate items using item-based collaborative filtering.
+Cache
+Data store
+Stores per-user top-N results for fast reads.
+6.2 Data Flow
+• The shopper browses products on the storefront. Product views, clicks, cart actions, and purchases
+are sent as activity events.
+• All external calls first hit the API Gateway. The gateway authenticates, rate-limits, and routes
+requests to back-end services.
+• Activity events are routed to the Event Tracking Service, which validates the event and publishes it to
+the broker/queue.
+• The Event Consumer reads events asynchronously, applies action weights, and updates the user-item
+interaction matrix in the Feature Store.
+• The Recommendation Service reads the interaction matrix and item-similarity table, computes item
+scores, filters already-seen items, and returns top-N products.
+• The gateway returns the top-N JSON response to the storefront. The cache may be used to reduce
+repeated computation.
+
+
+SEML Assignment I - E-commerce Recommendation End-to-End Guide
+Page 9
+6.3 Architectural Pattern 1 - Event-Driven Architecture
+In Event-Driven Architecture, producers publish events and consumers react to those events
+asynchronously. In this assignment, the storefront/event tracking service is the producer, the
+broker/queue is the event transport, and the consumer updates recommendation features. This pattern
+is suitable because user behaviour is continuous and bursty. The recommendation serving path should
+not wait for every event to be processed synchronously.
+What to show in implementation: a producer endpoint that accepts user events, a queue/broker where
+events are stored, and a consumer worker that reads events and updates the feature store.
+6.4 Architectural Pattern 2 - API Gateway
+API Gateway provides one stable external API for clients. Instead of the storefront calling many internal
+services directly, it calls the gateway. The gateway performs cross-cutting concerns such as
+authentication, rate limiting, logging, and routing. In this scenario, GET /recommend?user=u7 should
+be exposed through the gateway and internally routed to the Recommendation Service.
+What to show in implementation: a gateway service with a /recommend endpoint that checks a token or
+demo header, applies a simple rate-limit rule, calls the recommendation service, and returns its JSON
+response.
+
+
+SEML Assignment I - E-commerce Recommendation End-to-End Guide
+Page 10
+7. Implementation Guide
+The implementation can be a small academic prototype. It does not need production Kafka,
+Kubernetes, or cloud services unless your group is comfortable. The easiest defensible approach is a
+Python FastAPI prototype with an in-memory event queue. In the report, call it a Kafka-style simplified
+queue for local demonstration and mention that Kafka can replace the in-memory queue in production.
+7.1 Recommended Local Stack
+Tool
+Purpose
+Python 3.10+
+Implementation language.
+FastAPI
+Build API Gateway, Event Tracking Service, and Recommendation Service.
+Uvicorn
+Run FastAPI services locally.
+NumPy
+Store and manipulate the user-item interaction matrix.
+scikit-learn
+Compute cosine similarity between items.
+requests / httpx
+Call one service from another and run demo requests.
+Matplotlib
+Generate output plot screenshot for the report.
+7.2 Folder Structure
+seml-ecommerce-reco/
+  README.md
+  requirements.txt
+  feature_store.py
+  event_tracking_service.py
+  consumer_worker.py
+  recommendation_service.py
+  gateway.py
+  demo_client.py
+  generate_output_plot.py
+  screenshots/
+    01_gateway_swagger.png
+    02_post_event.png
+    03_recommend_response.png
+    04_terminal_consumer.png
+    05_output_plot.png
+7.3 requirements.txt
+fastapi==0.115.0
+uvicorn==0.30.6
+numpy==2.0.2
+scikit-learn==1.5.1
+requests==2.32.3
+httpx==0.27.2
+matplotlib==3.9.2
+7.4 Core Idea of the Recommendation Logic
+Each event is converted into a numeric weight. A view has smaller weight, a purchase has higher
+weight. The feature store maintains a user-item matrix M where each row is a user and each column is
+a product. Item similarity is computed from the transpose of this matrix. For a user u, recommendation
+score is calculated as user interactions multiplied by item similarity. Already-seen products are
+removed from the output.
+Step
+Formula / rule
+Meaning
+Action weight
+view=1, click=2, cart=3, purchase=5
+Stronger actions indicate stronger preference.
+Interaction matrix
+M[user, item] += weight
+Stores cumulative user-item preference strength.
+Item similarity
+sim = cosine_similarity(M.T)
+Items are similar if users interact with them in
+similar patterns.
+CF scoring
+scores = M[user] @ sim
+Score unseen items based on similarity to items the
+user interacted with.
+
+
+SEML Assignment I - E-commerce Recommendation End-to-End Guide
+Page 11
+Step
+Formula / rule
+Meaning
+Filter seen
+scores[M[user] > 0] = -infinity
+Do not recommend products already interacted
+with.
+
+
+SEML Assignment I - E-commerce Recommendation End-to-End Guide
+Page 12
+8. Starter Code to Implement
+Use this as a base. After copying into files, run it locally and capture screenshots. You can improve
+naming, add comments, and add your own group details. The key is that the code must clearly
+demonstrate both selected architectural patterns.
+8.1 feature_store.py
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+USERS = [f"u{i}" for i in range(1, 11)]
+ITEMS = [f"P{i:02d}" for i in range(1, 21)]
+USER_INDEX = {u: i for i, u in enumerate(USERS)}
+ITEM_INDEX = {p: i for i, p in enumerate(ITEMS)}
+WEIGHT = {"view": 1, "click": 2, "cart": 3, "purchase": 5}
+MATRIX = np.zeros((len(USERS), len(ITEMS)), dtype=float)
+ITEM_SIMILARITY = np.zeros((len(ITEMS), len(ITEMS)), dtype=float)
+EVENT_COUNT = 0
+def increment(user_id: str, item_id: str, action: str) -> None:
+    global EVENT_COUNT
+    if user_id not in USER_INDEX or item_id not in ITEM_INDEX:
+        raise ValueError("unknown user or item")
+    MATRIX[USER_INDEX[user_id], ITEM_INDEX[item_id]] += WEIGHT.get(action, 1)
+    EVENT_COUNT += 1
+def refresh_similarity() -> None:
+    global ITEM_SIMILARITY
+    ITEM_SIMILARITY = cosine_similarity(MATRIX.T)
+    np.fill_diagonal(ITEM_SIMILARITY, 0.0)
+def rank_items(user_id: str, k: int = 5) -> list[dict]:
+    if user_id not in USER_INDEX:
+        raise ValueError("unknown user")
+    u = USER_INDEX[user_id]
+    scores = MATRIX[u] @ ITEM_SIMILARITY
+    scores[MATRIX[u] > 0] = -np.inf
+    top = np.argsort(scores)[::-1][:k]
+    return [{"item": ITEMS[i], "score": round(float(scores[i]), 3)} for i in top]
+def seed_demo_data() -> None:
+    events = [
+        ("u7", "P01", "view"), ("u7", "P02", "click"),
+        ("u7", "P05", "cart"), ("u7", "P09", "purchase"),
+        ("u1", "P01", "purchase"), ("u1", "P14", "cart"),
+        ("u2", "P02", "purchase"), ("u2", "P14", "click"),
+        ("u3", "P05", "purchase"), ("u3", "P17", "cart"),
+        ("u4", "P09", "purchase"), ("u4", "P11", "click"),
+        ("u5", "P01", "cart"), ("u5", "P17", "purchase"),
+    ]
+    for user, item, action in events:
+        increment(user, item, action)
+    refresh_similarity()
+8.2 event_tracking_service.py
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from queue import Queue
+app = FastAPI(title="Event Tracking Service")
+EVENT_QUEUE = Queue()
+class ActivityEvent(BaseModel):
+    user_id: str
+    item_id: str
+    action: str
+@app.post("/track")
+def track(event: ActivityEvent):
+    if event.action not in {"view", "click", "cart", "purchase"}:
+        raise HTTPException(status_code=400, detail="invalid action")
+    EVENT_QUEUE.put(event.model_dump())
+    return {"status": "accepted", "queued_event": event.model_dump()}
+@app.get("/queue-size")
+def queue_size():
+    return {"pending_events": EVENT_QUEUE.qsize()}
+Important local-demo note
+
+
+SEML Assignment I - E-commerce Recommendation End-to-End Guide
+Page 13
+If event_tracking_service.py and consumer_worker.py run as separate Python processes, they will not share
+the same in-memory queue. For the simplest demo, you have two choices: run the consumer inside the
+same FastAPI process as a background task, or replace the in-memory queue with Redis/Kafka. For
+assignment simplicity, the next file shows the background-task style. If your group knows Kafka, you can
+use Kafka instead and mention it strongly in the report.
+
+
+SEML Assignment I - E-commerce Recommendation End-to-End Guide
+Page 14
+8.3 combined_event_app.py - easiest local Event-Driven Demo
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from queue import Queue
+from threading import Thread
+import time
+import feature_store
+app = FastAPI(title="Event Driven Recommendation Updater")
+EVENT_QUEUE = Queue()
+feature_store.seed_demo_data()
+class ActivityEvent(BaseModel):
+    user_id: str
+    item_id: str
+    action: str
+def consumer_loop():
+    while True:
+        event = EVENT_QUEUE.get()
+        try:
+            feature_store.increment(event["user_id"], event["item_id"], event["action"])
+            feature_store.refresh_similarity()
+            print("processed event:", event)
+        except Exception as exc:
+            print("failed event:", event, exc)
+        time.sleep(0.1)
+@app.on_event("startup")
+def start_consumer():
+    Thread(target=consumer_loop, daemon=True).start()
+@app.post("/track")
+def track(event: ActivityEvent):
+    if event.action not in {"view", "click", "cart", "purchase"}:
+        raise HTTPException(status_code=400, detail="invalid action")
+    EVENT_QUEUE.put(event.model_dump())
+    return {"status": "accepted", "pattern": "event-driven", "event": event.model_dump()}
+@app.get("/rank")
+def rank(user_id: str, k: int = 5):
+    return {
+        "user_id": user_id,
+        "strategy": "item-based-collaborative-filtering",
+        "recommendations": feature_store.rank_items(user_id, k)
+    }
+8.4 gateway.py
+from fastapi import FastAPI, Header, HTTPException
+import httpx
+import time
+app = FastAPI(title="API Gateway")
+RECO_SERVICE = "http://127.0.0.1:8001"
+REQUEST_LOG = {}
+VALID_TOKEN = "Bearer seml-demo-token"
+def valid_token(authorization: str | None) -> bool:
+    return authorization == VALID_TOKEN
+def rate_limited(user_id: str) -> bool:
+    now = time.time()
+    last = REQUEST_LOG.get(user_id, 0)
+    REQUEST_LOG[user_id] = now
+    return now - last < 0.5
+@app.get("/recommend")
+async def recommend(user_id: str, k: int = 5, authorization: str | None = Header(None)):
+    if not valid_token(authorization):
+        raise HTTPException(status_code=401, detail="unauthorized")
+    if rate_limited(user_id):
+        raise HTTPException(status_code=429, detail="too many requests")
+    async with httpx.AsyncClient() as client:
+        response = await client.get(f"{RECO_SERVICE}/rank", params={"user_id": user_id, "k":
+            k})
+    return response.json()
+@app.post("/activity")
+async def activity(event: dict, authorization: str | None = Header(None)):
+    if not valid_token(authorization):
+        raise HTTPException(status_code=401, detail="unauthorized")
+    async with httpx.AsyncClient() as client:
+
+
+SEML Assignment I - E-commerce Recommendation End-to-End Guide
+Page 15
+        response = await client.post(f"{RECO_SERVICE}/track", json=event)
+    return response.json()
+8.5 demo_client.py
+import requests
+HEADERS = {"Authorization": "Bearer seml-demo-token"}
+GATEWAY = "http://127.0.0.1:8000"
+events = [
+    {"user_id": "u7", "item_id": "P03", "action": "click"},
+    {"user_id": "u7", "item_id": "P04", "action": "cart"},
+    {"user_id": "u7", "item_id": "P12", "action": "purchase"},
+]
+for event in events:
+    print("POST /activity", requests.post(f"{GATEWAY}/activity", json=event,
+        headers=HEADERS).json())
+print("GET /recommend")
+response = requests.get(f"{GATEWAY}/recommend", params={"user_id": "u7", "k": 5},
+    headers=HEADERS)
+print(response.json())
+
+
+SEML Assignment I - E-commerce Recommendation End-to-End Guide
+Page 16
+9. How to Run and Capture Screenshots
+Run the services in separate terminals. Keep terminal windows visible so screenshots clearly show
+running services and processed events.
+9.1 Setup commands
+cd seml-ecommerce-reco
+python -m venv .venv
+# Windows
+.venv\Scripts\activate
+# macOS/Linux
+source .venv/bin/activate
+pip install -r requirements.txt
+9.2 Run services
+# Terminal 1 - Recommendation + Event-driven updater service
+uvicorn combined_event_app:app --reload --port 8001
+# Terminal 2 - API Gateway
+uvicorn gateway:app --reload --port 8000
+# Terminal 3 - Run demo requests
+python demo_client.py
+9.3 URLs to open
+URL
+What to capture
+http://127.0.0.1:8000/docs
+API Gateway Swagger UI. Shows /recommend and /activity exposed
+through gateway.
+http://127.0.0.1:8001/docs
+Internal recommendation/updater service Swagger UI. Shows /track
+and /rank.
+GET http://127.0.0.1:8000/recommend?user_
+id=u7&k;=5
+Gateway response with top-5 recommendations.
+POST http://127.0.0.1:8000/activity
+Gateway accepts user activity and routes it to event-driven updater
+service.
+9.4 Screenshot checklist
+• Screenshot 1: Gateway Swagger UI showing the gateway endpoints.
+• Screenshot 2: Event/recommendation service Swagger UI showing track and rank endpoints.
+• Screenshot 3: POST /activity request body and accepted response.
+• Screenshot 4: GET /recommend response JSON with user_id, strategy, and recommendations.
+• Screenshot 5: Terminal log showing processed events.
+• Screenshot 6: Output plot showing interaction matrix and top-5 recommendations.
+• Screenshot 7: Folder structure or code editor showing key files.
+9.5 Sample output figure
+
+
+SEML Assignment I - E-commerce Recommendation End-to-End Guide
+Page 17
+ Figure 5: Example evidence plot to include after running your own implementation.
+
+
+SEML Assignment I - E-commerce Recommendation End-to-End Guide
+Page 18
+10. What to Write in the Final Report
+The final PDF should be a report, not just code screenshots. A strong report has a clear story: why the
+system is needed, what requirements it satisfies, how GR4ML models it, how the architecture supports
+the quality requirements, and how the implementation proves the selected patterns.
+Section
+Recommended content
+Owner
+Cover page
+Course name, assignment title, scenario name, group number, member table
+with contribution.
+All
+1.1 Domain and problem
+statement
+One strong paragraph defining the e-commerce recommendation problem and
+top-N ranking output.
+Member 1
+1.2 Requirements and
+measurable goals
+FR/NFR table and measurable goals table with Precision@5, CTR uplift,
+latency, freshness, and coverage.
+Member 1
+1.3 GR4ML views
+Business View, Analytics Design View, Data Preparation View with
+explanations.
+Member 2
+1.4 Quality requirements
+Low latency, scalability/elasticity, recommendation quality/relevance with
+justifications.
+Member 1
+2.1 System architecture
+Architecture diagram, component table, and end-to-end data flow.
+Member 3
+2.2 Architectural
+patterns
+Event-Driven Architecture and API Gateway explanation, why selected,
+trade-offs.
+Member 3
+2.3 Implementation
+Folder structure, important code snippets, run commands, screenshots,
+sample output, explanation.
+Member 4
+Conclusion/checklist
+Short summary that both objectives are satisfied; mention limitations and
+future improvement.
+All
+References
+GR4ML papers/resources and any tool/library references used.
+All
+10.1 Suggested page distribution
+Part
+Pages
+Cover + group table
+1
+Objective 1: requirements, goals, GR4ML, quality requirements
+4-6
+Objective 2: architecture, patterns, implementation
+4-6
+Screenshots and code snippets
+3-5
+References and final checklist
+1
+10.2 Common mistakes to avoid
+• Do not submit only an implementation notebook without the report explanation.
+• Do not forget screenshots; the submission guideline explicitly requires application screenshots with
+explanation.
+• Do not draw GR4ML diagrams without explaining the meaning of each element.
+• Do not mention Event-Driven Architecture and API Gateway only in theory; show where each pattern
+appears in the code and architecture.
+• Do not recommend already-seen products in the ranking output; filtering seen items is a good detail
+to mention.
+• Do not leave placeholders such as Group No, BITS ID, or Member Name in the final file.
+• Do not use inconsistent names such as product ranking in one place and fraud detection in another.
+Keep the scenario consistent.
+
+
+SEML Assignment I - E-commerce Recommendation End-to-End Guide
+Page 19
+11. Explanation for Code and Patterns
+Use the following explanation in your own words in the implementation section.
+Code area
+Pattern
+demonstrated
+Explanation to write
+POST /activity in
+gateway.py
+API Gateway
+The client sends activity to one gateway endpoint. The gateway
+validates token and routes the request to the internal service.
+GET /recommend in
+gateway.py
+API Gateway
+The client does not call the recommendation service directly. The
+gateway hides internal service location and centralises
+authentication/rate-limiting.
+Queue in
+combined_event_app.py
+Event-Driven
+Activity events are accepted quickly and placed in a queue. The
+producer does not directly update the model.
+consumer_loop in
+combined_event_app.py
+Event-Driven
+The consumer asynchronously reads queued events and updates the
+feature store. This decouples ingestion from processing.
+feature_store.py
+ML feature management
+The user-item matrix and item similarity table represent ML features
+needed for recommendation.
+rank_items in
+feature_store.py
+Recommendation logic
+Item-based collaborative filtering ranks unseen products using
+interactions and item similarity.
+12. Viva / Review Questions with Answers
+Question
+Answer
+Why is this an ML-based application?
+The system learns user preference patterns from historical and streaming
+user-item interactions and uses those patterns to rank products.
+Why choose item-based collaborative
+filtering?
+It is simple, explainable, and fast for serving because item similarity can be
+precomputed and reused.
+Why event-driven architecture?
+User activity arrives continuously and at high volume. Events allow ingestion
+and feature updates to happen asynchronously without blocking
+recommendation requests.
+Why API Gateway?
+It gives clients one secured endpoint and centralises routing, authentication,
+and rate limiting.
+Which components are ML components?
+The recommendation service is the main ML component. Feature store
+supports ML serving by storing interaction matrix and item similarity.
+Which components are non-ML?
+API Gateway, event tracking service, message broker/queue, and event
+consumer are software/infrastructure components.
+How do you measure success?
+Precision@5, CTR uplift, p95 latency, event-to-feature lag, and catalogue
+coverage.
+What is a limitation of the prototype?
+It uses a simplified local queue and small in-memory data. In production it
+should use Kafka/Redis, persistent feature store, monitoring, and A/B testing.
+
+
+SEML Assignment I - E-commerce Recommendation End-to-End Guide
+Page 20
+13. Final Submission Checklist
+Check
+Done?
+Group number and all member details are filled.
+[ ]
+Contribution table has qualitative contribution and quantitative percentage for all four members.
+[ ]
+Problem statement is specific to e-commerce product recommendation.
+[ ]
+Functional and non-functional requirements are included.
+[ ]
+Measurable goals table is included.
+[ ]
+Business View diagram and explanation are included.
+[ ]
+Analytics Design View diagram and explanation are included.
+[ ]
+Data Preparation View diagram and explanation are included.
+[ ]
+Top three quality requirements are justified.
+[ ]
+Architecture diagram marks ML and non-ML components.
+[ ]
+Event-Driven Architecture is explained and visible in code.
+[ ]
+API Gateway is explained and visible in code.
+[ ]
+Implementation code is included or linked clearly.
+[ ]
+Screenshots show Swagger UI, live requests/responses, terminal output, and plot.
+[ ]
+References are added.
+[ ]
+Final file name follows the required group naming convention.
+[ ]
+14. References to Include
+• Nalchigar, S., Yu, E. (2020). Designing Business Analytics Solutions: A Model-Driven Approach.
+Business & Information Systems Engineering, 62(1), 61-75.
+• Nalchigar, S., Yu, E. (2018). Business-driven data analytics: A conceptual modeling framework. Data
+& Knowledge Engineering.
+• Nalchigar, S., Yu, E., Obeidi, Y. et al. (2019). Solution Patterns for Machine Learning. CAiSE 2019.
+• FastAPI documentation for the local API prototype.
+• scikit-learn documentation for cosine similarity used in item-based collaborative filtering.
+15. Final Advice
+Your scenario is good because it naturally fits both selected patterns. Event-Driven Architecture handles the
+continuous stream of user behaviour, and API Gateway gives a clean external interface for the storefront.
+For marks, make the connection visible: every requirement should map to a diagram, every diagram should
+map to architecture, and every pattern should be proven by a small working implementation and screenshot
+evidence.

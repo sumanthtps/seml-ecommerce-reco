@@ -1,0 +1,70 @@
+AIMLCZG546 - Software Engineering for Machine Learning  
+Assignment I 
+ 
+Overview 
+This assignment assesses your ability to apply software engineering principles to a machine 
+learning application — from problem formulation and requirements engineering through to 
+system architecture and implementation. You will work in groups to select a real-world ML 
+application domain, model it using GR4ML notation, and design and implement a working 
+system architecture. 
+General Instructions 
+• It is a Group Assignment. Please follow the naming convention as <Group no>.ipynb.  
+• Inside each report and implementation notebooks, you are required to mention your 
+name, Group details. 
+Group Details 
+Group No: <Fill Group No> 
+Group Member Names with Contribution 
+Sl. No BITS ID Name Contribution of 
+team member 
+(Qualitative) 
+Percentage 
+Contribution (Out 
+of 100) 
+Quantitative 
+1     
+2     
+3     
+4     
+  
+• Weightage - 10 marks 
+• Assignment 1 Submission Date – 30th June 2026, 23:00. 
+• Submissions after the due date will result in deduction of marks. 
+ 
+Note 
+1. No extension of deadline will be given under any circumstances. Manage your time and 
+complete the assignment within the deadline. 
+2. Since Assignment-I is part of EC-1 component, there is NO MAKEUP for this component. 
+3. Any questions or clarifications regarding the assignment can be emailed to 
+"omshree.b@wilp.bits-pilani.ac.in". 
+
+Project Details 
+Objective 1: Requirements Formulation [5 Marks] 
+1. Select a domain and define an appropriate problem statement for an ML -based 
+application of your choice. 
+2. Formulate the requirement specifications and establish measurable goals for the 
+proposed ML-based application using GR4ML concepts. 
+3. Using GR4ML notations, develop the following views for the application: 
+• Business View 
+• Analytics Design View 
+• Data Preparation View 
+4. Identify the top three quality requirements for the application and provide justification 
+for their selection. 
+ 
+Objective 2: System Architecture [5 Marks] 
+5. Draw a system architecture diagram for the selected application, clearly illustrating 
+both ML and non -ML components. You may use any suitable tool of your choice to 
+create the diagram. 
+6. Select and apply any two relevant architectural patterns suitable for the application. 
+7. Implement the selected architectural patterns using appropriate technologies and tools 
+of your choice. 
+ 
+Submission Guidelines  
+Prepare a Word/ PDF document containing the project details (screenshots of the application 
+are required, along with explanation) and code. Highlight clearly the contribution of each group 
+member in executing the assignment. Upload the file as <groupid.docx> or <groupid.pdf> into 
+the Taxila portal.  
+ 
+ 
+All the Best! 
+ 
+ 

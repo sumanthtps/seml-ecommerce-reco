@@ -1,0 +1,28 @@
+# Keep the build context small and reproducible.
+.git/
+.github/
+archive/
+docs/
+tests/
+scripts/
+artifacts/
+screenshots/
+evidence/
+
+# Caches & envs
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local files
+.env
+*.md
+!README.md
+desktop.ini
+.DS_Store

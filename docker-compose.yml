@@ -1,0 +1,44 @@
+name: seml-reco
+
+services:
+  recommendation:
+    build:
+      context: .
+      target: runtime
+    image: seml-reco:latest
+    command: uvicorn reco.recommendation.main:app --host 0.0.0.0 --port 8001
+    environment:
+      RECO_SEED_DEMO_DATA: "true"
+      RECO_LOG_FORMAT: "json"
+    expose:
+      - "8001"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+  gateway:
+    build:
+      context: .
+      target: runtime
+    image: seml-reco:latest
+    command: uvicorn reco.gateway.main:app --host 0.0.0.0 --port 8000
+    environment:
+      GATEWAY_RECO_SERVICE_URL: "http://recommendation:8001"
+      GATEWAY_AUTH_TOKEN: "${GATEWAY_AUTH_TOKEN:-seml-demo-token}"
+      GATEWAY_LOG_FORMAT: "json"
+    ports:
+      - "8000:8000"
+    depends_on:
+      recommendation:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
