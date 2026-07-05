@@ -1,7 +1,7 @@
 .git/
 .github/
 .venv/
-tests/
+backend/tests/
 scripts/
 tools/
 evidence/

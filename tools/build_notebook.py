@@ -118,7 +118,7 @@ print("Matrix density:", round(np.count_nonzero(prepared.matrix) / prepared.matr
 """
         ),
         new_markdown_cell(
-            source_block("src/ecom_ml/ml/data.py", "ML code: loading and preprocessing")
+            source_block("backend/src/ecom_ml/ml/data.py", "ML code: loading and preprocessing")
         ),
         new_code_cell(
             """
@@ -127,10 +127,13 @@ print(json.dumps(summary.as_dict(), indent=2))
 """
         ),
         new_markdown_cell(
-            source_block("src/ecom_ml/ml/model.py", "ML code: model training and inference")
+            source_block("backend/src/ecom_ml/ml/model.py", "ML code: model training and inference")
         ),
         new_markdown_cell(
-            source_block("src/ecom_ml/ml/evaluation.py", "ML code: leakage-safe evaluation")
+            source_block(
+                "backend/src/ecom_ml/ml/evaluation.py",
+                "ML code: leakage-safe evaluation",
+            )
         ),
         new_code_cell(
             """
@@ -184,13 +187,13 @@ never modifies training data and reloads the artifact when its version changes.
         ),
         new_markdown_cell(
             source_block(
-                "src/ecom_ml/command_service/main.py",
+                "backend/src/ecom_ml/command_service/main.py",
                 "Pattern code: CQRS command/write microservice",
             )
         ),
         new_markdown_cell(
             source_block(
-                "src/ecom_ml/query_service/main.py",
+                "backend/src/ecom_ml/query_service/main.py",
                 "Pattern code: CQRS query/read microservice",
             )
         ),

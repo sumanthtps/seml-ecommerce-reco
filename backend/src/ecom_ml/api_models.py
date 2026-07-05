@@ -23,10 +23,30 @@ class TrainCommand(BaseModel):
     holdout_per_user: int = Field(default=2, ge=1, le=5)
 
 
+class ProductInfo(BaseModel):
+    """Human-readable metadata for one catalogue product."""
+
+    item_id: str
+    product_name: str
+    category: str
+
+
+class RecommendationItem(ProductInfo):
+    """One ranked product returned by the read model."""
+
+    score: float
+
+
 class RecommendationResponse(BaseModel):
     """CQRS read-model response."""
 
     user_id: str
     model_version: str
     strategy: str
-    recommendations: list[dict[str, str | float]]
+    recommendations: list[RecommendationItem]
+
+
+class ProductCatalogResponse(BaseModel):
+    """Products available to the interaction and recommendation workflows."""
+
+    products: list[ProductInfo]

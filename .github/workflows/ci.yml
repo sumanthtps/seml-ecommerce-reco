@@ -34,10 +34,10 @@ jobs:
         run: python -m pip install -r requirements.txt -e ".[dev,report]"
 
       - name: Lint
-        run: ruff check src tests scripts tools
+        run: ruff check backend frontend scripts tools
 
       - name: Check formatting
-        run: ruff format --check src tests scripts tools
+        run: ruff format --check backend frontend scripts tools
 
       - name: Type-check
         run: mypy

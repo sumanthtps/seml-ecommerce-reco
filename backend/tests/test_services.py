@@ -47,6 +47,7 @@ def test_query_service_reads_model_without_write_routes(tmp_path: Path) -> None:
             "/queries/recommendations",
             params={"user_id": "u001", "k": 5},
         )
+        catalogue = query_client.get("/queries/products")
         write_attempt = query_client.post(
             "/commands/interactions",
             json={"user_id": "u001", "item_id": "P001", "action": "view"},
@@ -55,6 +56,15 @@ def test_query_service_reads_model_without_write_routes(tmp_path: Path) -> None:
     assert health.json()["status"] == "ok"
     assert response.status_code == 200
     assert len(response.json()["recommendations"]) == 5
+    assert response.json()["recommendations"][0]["product_name"]
+    assert response.json()["recommendations"][0]["category"]
+    assert catalogue.status_code == 200
+    assert len(catalogue.json()["products"]) == 60
+    assert catalogue.json()["products"][0] == {
+        "item_id": "P001",
+        "product_name": "Wireless Noise-Cancelling Headphones",
+        "category": "Electronics",
+    }
     assert write_attempt.status_code == 404
 
 

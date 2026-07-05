@@ -57,3 +57,40 @@ services:
       retries: 5
       start_period: 5s
     restart: unless-stopped
+
+  ui:
+    build:
+      context: .
+      target: runtime
+    image: seml-ecommerce-reco:latest
+    command:
+      [
+        "streamlit",
+        "run",
+        "frontend/app.py",
+        "--server.address=0.0.0.0",
+        "--server.port=8501",
+      ]
+    environment:
+      SEML_COMMAND_URL: http://command-service:8101
+      SEML_QUERY_URL: http://query-service:8102
+    ports:
+      - "8501:8501"
+    depends_on:
+      command-service:
+        condition: service_healthy
+      query-service:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8501/_stcore/health')",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped

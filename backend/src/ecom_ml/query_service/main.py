@@ -8,7 +8,13 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query
 
-from ecom_ml.api_models import RecommendationResponse
+from ecom_ml.api_models import (
+    ProductCatalogResponse,
+    ProductInfo,
+    RecommendationItem,
+    RecommendationResponse,
+)
+from ecom_ml.catalog import PRODUCTS, get_product
 from ecom_ml.config import Settings
 from ecom_ml.ml.artifact import METADATA_FILENAME, load_artifact
 from ecom_ml.ml.model import CollaborativeFilteringModel
@@ -71,6 +77,19 @@ def create_app(*, artifact_dir: Path | None = None) -> FastAPI:
             raise HTTPException(status_code=503, detail=str(exc)) from exc
         return {"pattern": "CQRS-query", **metadata}
 
+    @application.get("/queries/products", response_model=ProductCatalogResponse)
+    def products() -> ProductCatalogResponse:
+        return ProductCatalogResponse(
+            products=[
+                ProductInfo(
+                    item_id=product.item_id,
+                    product_name=product.name,
+                    category=product.category,
+                )
+                for product in PRODUCTS
+            ]
+        )
+
     @application.get("/queries/recommendations", response_model=RecommendationResponse)
     def recommendations(
         user_id: str = Query(min_length=1),
@@ -83,14 +102,22 @@ def create_app(*, artifact_dir: Path | None = None) -> FastAPI:
             raise HTTPException(status_code=503, detail=str(exc)) from exc
         except KeyError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
+        recommendation_items: list[RecommendationItem] = []
+        for recommendation in ranked:
+            product = get_product(recommendation.item_id)
+            recommendation_items.append(
+                RecommendationItem(
+                    item_id=recommendation.item_id,
+                    product_name=product.name,
+                    category=product.category,
+                    score=recommendation.score,
+                )
+            )
         return RecommendationResponse(
             user_id=user_id,
             model_version=model.version,
             strategy="item-based-collaborative-filtering",
-            recommendations=[
-                {"item_id": recommendation.item_id, "score": recommendation.score}
-                for recommendation in ranked
-            ],
+            recommendations=recommendation_items,
         )
 
     return application

@@ -2,7 +2,7 @@
 PYTHON ?= python
 COMPOSE ?= docker compose
 
-.PHONY: help install seed train command query demo verify lint format typecheck \
+.PHONY: help install seed train command query ui demo verify lint format typecheck \
         test cov check notebook word report docker-build up down logs clean
 
 help: ## Show available commands
@@ -24,6 +24,9 @@ command: ## Run the CQRS command service on port 8101
 query: ## Run the CQRS query service on port 8102
 	uvicorn ecom_ml.query_service.main:app --reload --port 8102
 
+ui: ## Run the Streamlit dashboard on port 8501
+	streamlit run frontend/app.py --server.port 8501
+
 demo: ## Exercise two already-running services
 	$(PYTHON) scripts/run_demo.py
 
@@ -31,11 +34,11 @@ verify: ## Start both services temporarily and run an end-to-end check
 	$(PYTHON) scripts/verify_live.py
 
 lint: ## Lint source, tests, scripts, and generators
-	ruff check src tests scripts tools
+	ruff check backend frontend scripts tools
 
 format: ## Format and auto-fix Python files
-	ruff format src tests scripts tools
-	ruff check --fix src tests scripts tools
+	ruff format backend frontend scripts tools
+	ruff check --fix backend frontend scripts tools
 
 typecheck: ## Run static type checks
 	mypy --cache-dir=/tmp/seml-mypy-cache
@@ -47,7 +50,7 @@ cov: ## Run tests with branch coverage
 	pytest --cov=ecom_ml --cov-report=term-missing
 
 check: lint typecheck cov ## Run the local CI quality gate
-	ruff format --check src tests scripts tools
+	ruff format --check backend frontend scripts tools
 
 notebook: ## Rebuild and execute the submission notebook
 	$(PYTHON) tools/build_notebook.py
@@ -64,7 +67,7 @@ report: ## Regenerate diagrams, notebook, Word report, and optional PDF
 docker-build: ## Build the runtime container
 	$(COMPOSE) build
 
-up: ## Start both services with Docker Compose
+up: ## Start the APIs and UI with Docker Compose
 	$(COMPOSE) up --build
 
 down: ## Stop the Compose stack

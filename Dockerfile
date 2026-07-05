@@ -10,7 +10,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /build
 COPY requirements.txt pyproject.toml README.md ./
-COPY src ./src
+COPY backend/src ./backend/src
 RUN python -m pip install -r requirements.txt \
     && python -m pip install --no-deps .
 
@@ -26,10 +26,12 @@ RUN useradd --create-home --uid 1000 appuser
 COPY --from=builder /opt/venv /opt/venv
 
 WORKDIR /app
+COPY --chown=appuser:appuser .streamlit ./.streamlit
+COPY --chown=appuser:appuser frontend ./frontend
 COPY --chown=appuser:appuser data ./data
 COPY --chown=appuser:appuser artifacts ./artifacts
 
 USER appuser
-EXPOSE 8101 8102
+EXPOSE 8101 8102 8501
 
 CMD ["uvicorn", "ecom_ml.query_service.main:app", "--host", "0.0.0.0", "--port", "8102"]
