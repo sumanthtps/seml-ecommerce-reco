@@ -1,3 +1,13 @@
+---
+title: SEML E-commerce Recommendation
+emoji: 🛒
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # SEML Assignment I — E-commerce ML Recommendation
 
 This is the single canonical repository for **AIMLCZG546 — Software
