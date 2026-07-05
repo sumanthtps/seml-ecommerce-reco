@@ -1,7 +1,7 @@
 {
   "model_type": "item-based-collaborative-filtering",
   "version": "1d09e5db884c",
-  "trained_at": "2026-07-05T05:55:35+00:00",
+  "trained_at": "2026-07-05T10:13:52+00:00",
   "users": 81,
   "items": 60,
   "training_events": 994,

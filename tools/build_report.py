@@ -43,7 +43,6 @@ FINAL = ROOT / "final_submission"
 PDF_OUTPUT = ROOT / "output" / "pdf"
 DETAILS = json.loads((ROOT / "submission_details.json").read_text(encoding="utf-8"))
 METADATA = json.loads((ROOT / "artifacts" / "model_metadata.json").read_text(encoding="utf-8"))
-TRANSCRIPT = json.loads((EVIDENCE / "live_demo.json").read_text(encoding="utf-8"))
 GROUP = DETAILS["group_number"]
 STEM = f"{GROUP}_SEML_Assignment_01_Complete_Report"
 DOCX_PATH = FINAL / f"{STEM}.docx"
@@ -370,7 +369,7 @@ def add_cover(document: Document) -> None:
     descriptor.paragraph_format.space_after = Pt(42)
     set_run_font(
         descriptor.add_run(
-            "GR4ML requirements | Item-based collaborative filtering | Microservices + CQRS"
+            "GR4ML | Collaborative filtering | Interest cold start | Microservices + CQRS | Streamlit"
         ),
         size=11,
         color=MUTED,
@@ -407,7 +406,6 @@ def member_table() -> list[list[str]]:
 
 def report_content_docx(document: Document) -> None:
     metrics = METADATA["metrics"]
-    query = TRANSCRIPT["recommendation_query"]
 
     group_heading = document.add_heading("Group Details and Submission Note", level=1)
     group_heading.paragraph_format.page_break_before = True
@@ -420,8 +418,8 @@ def report_content_docx(document: Document) -> None:
     add_paragraph(
         document,
         "Submission format. We have included the implementation notebook together with this "
-        "Word report. The report contains the answers, code excerpts, GR4ML diagrams, "
-        "architecture diagram, and screenshots of executed output.",
+        "Word report. The report contains our answers, selected code excerpts, the three GR4ML "
+        "views, the system architecture, and browser captures of the running APIs and UI.",
         bold_lead="Submission format.",
     )
 
@@ -545,6 +543,16 @@ def report_content_docx(document: Document) -> None:
                 "Query Service returns five ranked products.",
             ],
             [
+                "FR7",
+                "Create named users with a primary catalogue interest.",
+                "User command persists a validated profile.",
+            ],
+            [
+                "FR8",
+                "Recommend useful products before a new user has interaction history.",
+                "Cold-start query ranks products from the selected interest.",
+            ],
+            [
                 "DR1",
                 "Accept only complete IDs, valid actions, and ISO timestamps; ignore duplicate event IDs.",
                 "Validation and deduplication unit tests.",
@@ -565,14 +573,14 @@ def report_content_docx(document: Document) -> None:
     )
     add_paragraph(
         document,
-        "Each measure below is directly related to a goal, quantifiable, objective, and practical "
-        "to collect. We distinguish executed offline evidence from production goals that require "
-        "traffic, load testing, or an A/B experiment.",
+        "The first three measures can be calculated from the held-out interaction data. Serving "
+        "latency and business uplift need live traffic, so we keep them as deployment targets "
+        "rather than presenting them as results from this prototype.",
     )
     add_table(
         document,
         [
-            ["Goal", "Target", "Executed result", "Status"],
+            ["Goal", "Target", "Result from this run", "Status"],
             [
                 "Recommendation relevance",
                 "Precision@5 >= 0.30",
@@ -595,11 +603,11 @@ def report_content_docx(document: Document) -> None:
     document.add_heading("Question 3 - GR4ML Views", level=2)
     add_paragraph(
         document,
-        "We prepared the three complementary GR4ML views described in Session 3. The notation now "
-        "matches the lecture examples: actors are stick figures; goals are ovals; decision and "
-        "question goals carry D and Q markers; algorithms are hexagons; softgoals are clouds; "
-        "indicators use a traffic-light symbol; entities use structured boxes; operators use "
-        "rectangles; and notes have a folded corner. Each figure contains its own view-specific legend.",
+        "We use one visual style across all three GR4ML views: the title treatment, type scale, "
+        "line weight, spacing, and footer key remain consistent. The shapes retain their GR4ML "
+        "meaning: goals are ovals, algorithms are hexagons, softgoals are clouds, indicators use "
+        "a traffic-light symbol, entities use structured boxes, operators use rectangles, and notes "
+        "have a folded corner.",
     )
     add_image(
         document,
@@ -608,11 +616,11 @@ def report_content_docx(document: Document) -> None:
     )
     add_paragraph(
         document,
-        "Business interpretation. The Storefront Manager desires the business goal of increasing "
-        "revenue per session. This goal is refined into the decision of which products to display. "
-        "The decision requires an answer to which unseen products a user will engage with. The "
-        "structured Top-5 Recommendation Insight answers that question, while CTR and average order "
-        "value evaluate the business goal.",
+        "Business interpretation. The Storefront Manager wants to increase revenue per session. "
+        "That business goal leads to a recurring product decision: which items should occupy the "
+        "limited recommendation space? The Top-5 Recommendation Insight answers the related "
+        "question about unseen products. CTR and average order value are the indicators used to "
+        "judge whether the decision helps the business goal.",
     )
     add_image(
         document,
@@ -621,11 +629,11 @@ def report_content_docx(document: Document) -> None:
     )
     add_paragraph(
         document,
-        "Analytics interpretation. This is a Prediction Goal because the system estimates unknown "
-        "future preference scores. Item-based collaborative filtering, matrix factorization, and a "
-        "popularity baseline are alternative algorithms that perform the goal. Item-based CF is "
-        "selected for the prototype because it positively supports low latency and interpretability "
-        "while still meeting the relevance threshold. Precision@5 and Coverage@5 evaluate the goal.",
+        "Analytics interpretation. The analytics goal is to estimate preferences for products a "
+        "user has not seen. We considered item-based collaborative filtering, matrix factorization, "
+        "and a popularity baseline. Item-based CF fits this prototype because its similarity scores "
+        "are easy to inspect and inexpensive to serve. Precision@5 checks relevance, while "
+        "Coverage@5 checks whether recommendations extend beyond a small part of the catalogue.",
     )
     add_image(
         document,
@@ -634,10 +642,11 @@ def report_content_docx(document: Document) -> None:
     )
     add_paragraph(
         document,
-        "Data interpretation. Interaction Event and Product Catalogue are entities. Validate and "
-        "Deduplicate, Apply Action Weights, and Aggregate by User and Item are operators connected "
-        "by data flows. Dashed links identify inputs and outputs. The Prepared User-Item Matrix is "
-        "the resulting entity required by the analytics goal; the folded note records the action weights.",
+        "Data interpretation. Interaction Event and Product Catalogue are the two source entities. "
+        "The pipeline validates events, removes duplicate event IDs, maps actions to weights, and "
+        "aggregates values for each user-item pair. The result is the matrix used for evaluation, "
+        "training, and ranking. The folded note records the exact weights so the transformation can "
+        "be reproduced.",
     )
     add_callout(
         document,
@@ -675,9 +684,10 @@ def report_content_docx(document: Document) -> None:
     )
     add_paragraph(
         document,
-        "In the Analytics Design View, these quality requirements are modeled as Softgoals. "
-        "Influence links make the trade-offs visible instead of treating algorithm selection as "
-        "an accuracy-only decision.",
+        "The Analytics Design View shows relevance and latency as softgoals and includes "
+        "interpretability because it influenced the algorithm choice. Scalability is addressed in "
+        "the architecture by separating training commands from recommendation reads. Together, the "
+        "two views keep model quality and software quality in the same design discussion.",
     )
 
     architecture_heading = document.add_heading("Objective 2 - System Architecture", level=1)
@@ -692,7 +702,11 @@ def report_content_docx(document: Document) -> None:
         document,
         [
             ["Component", "Type", "Responsibility"],
-            ["Storefront / analyst", "External", "Issues commands and recommendation queries."],
+            [
+                "Streamlit UI :8501",
+                "Presentation",
+                "Runs user, interaction, training, and recommendation flows.",
+            ],
             ["Command Service :8101", "Non-ML service", "Owns writes and invokes training."],
             [
                 "Training pipeline",
@@ -700,10 +714,30 @@ def report_content_docx(document: Document) -> None:
                 "Loads, prepares, evaluates, fits, and persists.",
             ],
             ["Raw event log", "Data store", "Authoritative command-side interaction history."],
+            ["User profile store", "Data store", "Named users and primary cold-start interests."],
             ["Versioned read model", "ML artifact", "Similarity matrix, user features, metadata."],
-            ["Query Service :8102", "ML serving", "Reloads versions and ranks unseen products."],
+            [
+                "Query Service :8102",
+                "ML serving",
+                "Serves collaborative or interest-based recommendations and recent actions.",
+            ],
         ],
         [1.55, 1.25, 3.7],
+    )
+    add_paragraph(
+        document,
+        "Read path. A recommendation request goes from Streamlit to the Query Service. The service "
+        "reads the user profile and current model artifact, masks products already seen by the user, "
+        "and returns ranked catalogue records. This path does not modify the event log or trigger training.",
+        bold_lead="Read path.",
+    )
+    add_paragraph(
+        document,
+        "Write and training path. User creation, interaction recording, and retraining go through "
+        "the Command Service. Interactions are appended to the event log; training reads that log, "
+        "builds a fresh model, and publishes a new artifact version. The Query Service detects the "
+        "new version and reloads it for later requests.",
+        bold_lead="Write and training path.",
     )
 
     document.add_heading("Question 6 - Two Selected Architectural Patterns", level=2)
@@ -711,14 +745,14 @@ def report_content_docx(document: Document) -> None:
     add_paragraph(
         document,
         "Application. Command and Query responsibilities are separate FastAPI applications on ports "
-        "8101 and 8102. They have independent entry points, API contracts, health endpoints, tests, "
-        "and Docker Compose processes. Training failures therefore do not require the read service "
-        "to expose write behavior, and read replicas can scale independently.",
+        "8101 and 8102. Each has its own entry point, API contract, health endpoint, tests, and "
+        "Docker Compose process. This keeps model training away from the request path used to fetch "
+        "recommendations and allows the two workloads to be scaled separately.",
         bold_lead="Application.",
     )
     add_paragraph(
         document,
-        "Trade-off. Distributed deployment increases operational complexity. The local demonstration "
+        "Trade-off. Distributed deployment increases operational complexity. The local setup "
         "uses a shared artifact directory for reproducibility; a production design would publish to "
         "a model registry or object store and add authentication, tracing, retries, and rollback.",
         bold_lead="Trade-off.",
@@ -726,10 +760,10 @@ def report_content_docx(document: Document) -> None:
     document.add_heading("Pattern 2 - CQRS", level=3)
     add_paragraph(
         document,
-        "Application. POST /commands/interactions appends to the write model and POST /commands/train "
-        "builds an immutable read model. GET /queries/recommendations and GET /queries/model-info are "
-        "read-only. The query process checks artifact modification time and atomically reloads a new "
-        "model version.",
+        "Application. POST /commands/interactions, POST /commands/users, and POST /commands/train "
+        "mutate the write side. Product, user, recent-action, model-info, and recommendation endpoints "
+        "remain read-only. The query process atomically reloads a new model version; a profile with no "
+        "trained history receives an interest-based cold-start ranking.",
         bold_lead="Application.",
     )
     add_paragraph(
@@ -744,23 +778,19 @@ def report_content_docx(document: Document) -> None:
     document.add_heading("7.1 ML Training and Evaluation", level=3)
     add_paragraph(
         document,
-        "The runnable pipeline has five visible stages: LOAD, PREPARE, EVALUATE, TRAIN, and PERSIST. "
-        "The dataset contains 80 users, 60 items, and 960 deterministic events before the live command. "
-        "The final artifact contains no executable pickle payload.",
-    )
-    add_image(
-        document,
-        "training_terminal.png",
-        "Figure 5. Actual training console output and passed offline quality gate.",
+        "The pipeline reports five stages: LOAD, PREPARE, EVALUATE, TRAIN, and PERSIST. The seed "
+        "creates 80 users, 60 items, and 960 interaction events. The model artifact used for this "
+        f"report records {METADATA['training_events']} events and stores arrays in NPZ with metadata "
+        "in JSON; it does not rely on an executable pickle file.",
     )
     add_image(
         document,
         "ml_execution_metrics.png",
-        "Figure 6. Prepared matrix, offline metrics, and top-5 recommendation scores.",
+        "Figure 5. Prepared interaction matrix, offline metrics, and the top-5 scores from the saved model.",
     )
     add_callout(
         document,
-        "Executed result",
+        "Offline evaluation result",
         f"Precision@5={metrics['precision_at_k']:.3f}, "
         f"Recall@5={metrics['recall_at_k']:.3f}, "
         f"Hit Rate@5={metrics['hit_rate_at_k']:.3f}, and "
@@ -768,47 +798,130 @@ def report_content_docx(document: Document) -> None:
         f"{metrics['evaluated_users']} users.",
         fill="E6F5F2",
     )
+    add_paragraph(
+        document,
+        "How to read the measures. Precision@5 is the fraction of five returned products that were "
+        "held out as relevant. Recall@5 measures how many held-out products were recovered. Hit "
+        "Rate@5 asks whether at least one held-out product appeared for a user. Coverage@5 reports "
+        "the fraction of catalogue items that appeared in any top-5 list. These values check the "
+        "offline pipeline on synthetic data; they are not a substitute for an online business experiment.",
+        bold_lead="How to read the measures.",
+    )
 
     document.add_heading("7.2 Pattern Implementation and API Evidence", level=3)
     add_image(
         document,
         "command_service_api.png",
-        "Figure 7. Command Service endpoints generated from its actual OpenAPI contract.",
+        "Figure 6. Command Service contract shown in Swagger UI.",
     )
     add_image(
         document,
         "query_service_api.png",
-        "Figure 8. Query Service endpoints generated from its actual OpenAPI contract.",
-    )
-    add_image(
-        document,
-        "live_execution.png",
-        "Figure 9. Actual live run across two service processes: command, train, then query.",
-    )
-    recommendation_text = ", ".join(
-        f"{item['item_id']} ({item['score']:.4f})" for item in query["recommendations"]
+        "Figure 7. Query Service contract shown in Swagger UI.",
     )
     add_paragraph(
         document,
-        f"Result interpretation. After the command service accepted a purchase and trained model "
-        f"{query['model_version']}, the query service returned five unseen products for u007: "
-        f"{recommendation_text}. The test suite also proves that the Query Service exposes no command "
-        "route and rejects unknown users.",
-        bold_lead="Result interpretation.",
+        "API interpretation. The Swagger pages make the CQRS split visible in the running "
+        "application. The Command Service owns profile, interaction, and training changes. The "
+        "Query Service exposes model metadata, products, named users, recent actions, and "
+        "recommendations, but no command routes.",
+        bold_lead="API interpretation.",
+    )
+    add_callout(
+        document,
+        "Browser capture context",
+        "The screenshots record an isolated demonstration run. The Command Service was bound to "
+        "port 8111 for that run so its clean interaction file could remain separate from another "
+        "local process; the Makefile and architecture retain 8101 as the normal command port. "
+        "Model version identifiers change whenever training publishes a new artifact.",
+        fill="FFF4DD",
     )
 
-    document.add_heading("7.3 Verification and Reproducibility", level=3)
+    document.add_heading("7.3 UI Flows Captured in the Browser", level=3)
+    add_paragraph(
+        document,
+        "Flow 1 - Personalized recommendation and recent activity. The user selects a named customer "
+        "and top-k value, then submits a read-only query. The UI displays realistic product names, "
+        "categories, scores, model strategy, and the three most recent actions beneath the ranking.",
+        bold_lead="Flow 1 - Personalized recommendation and recent activity.",
+    )
+    add_image(
+        document,
+        "ui_recommendation_flow.png",
+        "Figure 8. Collaborative recommendations with the three latest actions.",
+    )
+    add_paragraph(
+        document,
+        "Flow 2 - Record interaction. A named customer, product, and action type are selected. "
+        "Submitting the form sends POST /commands/interactions and appends a validated implicit-feedback "
+        "event; the UI explains that retraining is required before it changes collaborative rankings.",
+        bold_lead="Flow 2 - Record interaction.",
+    )
+    add_image(
+        document,
+        "ui_interaction_flow.png",
+        "Figure 9. Interaction form after recording an implicit-feedback event.",
+    )
+    add_paragraph(
+        document,
+        "Flow 3 - User management. The Users tab lists the five default named profiles and their "
+        "interests. The add-user form validates a name and primary-interest dropdown before "
+        "POST /commands/users persists a new profile.",
+        bold_lead="Flow 3 - User management.",
+    )
+    add_image(
+        document,
+        "ui_users_flow.png",
+        "Figure 10. Five default user profiles and the add-user form.",
+    )
+    add_paragraph(
+        document,
+        "Flow 4 - Interest-based cold start. A newly created user has no interaction history in the "
+        "trained matrix. The Query Service therefore returns products from that profile's selected "
+        "interest and labels the strategy interest-based-cold-start. After the user records actions "
+        "and the model is retrained, the same request can move to collaborative recommendations; "
+        "the saved interest remains available as a fallback.",
+        bold_lead="Flow 4 - Interest-based cold start.",
+    )
+    add_image(
+        document,
+        "ui_cold_start_flow.png",
+        "Figure 11. Interest-based recommendations for a newly created user.",
+    )
+    add_paragraph(
+        document,
+        "Flow 5 - Model training. The operator selects evaluation K and holdout events, then submits "
+        "POST /commands/train. The five-stage pipeline loads, prepares, evaluates, trains, and persists "
+        "the read model; the Query Service reloads it without exposing a write route.",
+        bold_lead="Flow 5 - Model training.",
+    )
+    add_image(
+        document,
+        "ui_training_flow.png",
+        "Figure 12. Training controls and the completed pipeline summary.",
+    )
+    add_paragraph(
+        document,
+        "Training result shown in Figure 12. The clean browser dataset started with 960 events. "
+        "The interaction flow added one click before training, so the captured summary reports "
+        "961 raw and unique events, 80 users, 60 products, Precision@5 of 0.330, Recall@5 of "
+        "0.825, Hit Rate@5 of 0.950, and full catalogue coverage. Later local runs may have a "
+        "different event count and version while following the same pipeline.",
+        bold_lead="Training result shown in Figure 12.",
+    )
+
+    document.add_heading("7.4 Verification and Reproducibility", level=3)
     add_table(
         document,
         [
             ["Check", "Result"],
             ["Ruff lint", "Passed"],
             ["Ruff formatting", "Passed"],
-            ["Mypy static typing", "17 source files passed"],
+            ["Mypy static typing", "20 source files passed"],
             ["Pytest", "8 tests passed"],
-            ["Coverage", "89% total"],
-            ["Live HTTP scenario", "Passed with five recommendations"],
-            ["Notebook", "All code cells executed; outputs and diagrams saved"],
+            ["Coverage", "88% total"],
+            ["Browser flows", "Five UI flows and two Swagger pages captured"],
+            ["Notebook", "All code cells executed; outputs and browser evidence saved"],
         ],
         [2.4, 4.1],
     )
@@ -824,7 +937,7 @@ def report_content_docx(document: Document) -> None:
         # Run in separate terminals
         uvicorn ecom_ml.command_service.main:app --port 8101
         uvicorn ecom_ml.query_service.main:app --port 8102
-        python scripts/run_demo.py
+        streamlit run frontend/app.py --server.port 8501
 
         # Quality gates
         make check
@@ -833,13 +946,13 @@ def report_content_docx(document: Document) -> None:
         "Reproduction commands",
     )
 
-    document.add_heading("7.4 Limitations and Future Improvements", level=3)
+    document.add_heading("7.5 Limitations and Future Improvements", level=3)
     add_paragraph(
         document,
-        "This is an executed academic prototype, not a production claim. It uses deterministic "
-        "synthetic behavior, a CSV command store, and a shared local artifact directory. It has no "
-        "cold-start strategy for unknown users, online experiment data, privacy controls, or model "
-        "drift alarms.",
+        "This prototype uses deterministic synthetic interactions, a CSV command store, and a "
+        "shared local artifact directory. It does not include online experiment data, authentication, "
+        "privacy controls, or drift alerts. Cold start uses one declared interest, which is useful "
+        "for showing the flow but much simpler than a production hybrid recommender.",
     )
     add_paragraph(
         document,
@@ -849,11 +962,11 @@ def report_content_docx(document: Document) -> None:
         "revenue per session.",
     )
 
-    document.add_heading("Appendix A - Key Executed Code", level=1)
+    document.add_heading("Appendix A - Key Code Excerpts", level=1)
     add_paragraph(
         document,
-        "The executed notebook contains the complete ML and service code. The main ML code excerpts "
-        "are also included below for easy evaluation.",
+        "The notebook runs the ML path and embeds the relevant service modules. The main excerpts "
+        "are repeated below so the implementation can be reviewed alongside the design discussion.",
     )
     add_code(
         document,
@@ -928,7 +1041,7 @@ def report_content_docx(document: Document) -> None:
     add_callout(
         document,
         "Final submission check",
-        "Fill group metadata, confirm the portal naming convention, open the executed notebook to "
+        "Fill group metadata, confirm the portal naming convention, open the notebook to "
         "verify saved outputs, and submit the requested IPYNB plus one report format.",
     )
 
@@ -940,9 +1053,13 @@ def build_docx() -> Path:
     add_cover(document)
     report_content_docx(document)
     document.core_properties.title = "SEML Assignment I - E-commerce ML Recommendation"
-    document.core_properties.subject = "GR4ML, Microservices, CQRS, collaborative filtering"
+    document.core_properties.subject = (
+        "GR4ML, Microservices, CQRS, collaborative filtering, interest cold start, Streamlit"
+    )
     document.core_properties.author = f"BITS Pilani WILP Group {GROUP}"
-    document.core_properties.keywords = "SEML, GR4ML, recommendation, Microservices, CQRS"
+    document.core_properties.keywords = (
+        "SEML, GR4ML, recommendation, Microservices, CQRS, Streamlit, cold start"
+    )
     document.save(DOCX_PATH)
     return DOCX_PATH
 
@@ -1151,7 +1268,6 @@ def pdf_header_footer(canvas: Any, document: Any) -> None:
 
 def build_pdf_story() -> list[Any]:
     metrics = METADATA["metrics"]
-    query = TRANSCRIPT["recommendation_query"]
     story: list[Any] = [
         Spacer(1, 1.15 * inch),
         Paragraph(
@@ -1163,16 +1279,14 @@ def build_pdf_story() -> list[Any]:
         Paragraph("Software Engineering for Machine Learning", PSTYLE["CoverTitle"]),
         Paragraph("Assignment I - E-commerce Product Recommendation", PSTYLE["CoverSub"]),
         Paragraph(
-            "GR4ML requirements | Item-based collaborative filtering | Microservices + CQRS",
+            "GR4ML | Collaborative filtering | Interest cold start | Microservices + CQRS | Streamlit",
             PSTYLE["Center"],
         ),
         Spacer(1, 0.75 * inch),
         Paragraph(f"<b>Group:</b> {GROUP}", PSTYLE["Center"]),
         Paragraph(f"Submission deadline: {DETAILS['deadline']}", PSTYLE["Center"]),
         Spacer(1, 0.4 * inch),
-        Paragraph(
-            f"Prepared as a report plus an executed {GROUP}.ipynb notebook", PSTYLE["Center"]
-        ),
+        Paragraph(f"Prepared as a report plus the {GROUP}.ipynb notebook", PSTYLE["Center"]),
         PageBreak(),
         Paragraph("Group Details and Submission Note", PSTYLE["H1"]),
         pdf_table(member_table(), [0.35, 0.9, 1.0, 3.75, 0.5], font_size=6.8),
@@ -1183,8 +1297,8 @@ def build_pdf_story() -> list[Any]:
         ),
         Spacer(1, 8),
         Paragraph(
-            "<b>Submission format.</b> The final clarification asks for an implementation notebook "
-            "and a reviewable Word/PDF containing code, diagrams, and execution evidence.",
+            "<b>Submission format.</b> We include the implementation notebook and a reviewable "
+            "Word/PDF with selected code, diagrams, calculated results, and browser captures.",
             PSTYLE["Body"],
         ),
         Paragraph("Assignment Coverage Matrix", PSTYLE["H1"]),
@@ -1228,13 +1342,15 @@ def build_pdf_story() -> list[Any]:
                 ["FR4", "Evaluate without leakage.", "Leave-2-out top-k metrics."],
                 ["FR5", "Accept writes/training as commands.", "Command service 202/200."],
                 ["FR6", "Serve unseen items as queries.", "Query returns five products."],
+                ["FR7", "Create named users with interests.", "Profile command + user query."],
+                ["FR8", "Support new-user cold start.", "Interest-matched products."],
             ],
             [0.5, 3.35, 2.65],
         ),
         Spacer(1, 8),
         pdf_table(
             [
-                ["Goal", "Target", "Executed result", "Status"],
+                ["Goal", "Target", "Result from this run", "Status"],
                 ["Relevance", "Precision@5 >= 0.30", f"{metrics['precision_at_k']:.3f}", "Passed"],
                 ["Recovery", "Recall@5 >= 0.70", f"{metrics['recall_at_k']:.3f}", "Passed"],
                 [
@@ -1250,10 +1366,10 @@ def build_pdf_story() -> list[Any]:
         ),
         Paragraph("3. GR4ML Views", PSTYLE["H2"]),
         Paragraph(
-            "The notation follows Session 3: actors are stick figures; goals are ovals; decision "
-            "and question goals carry D and Q markers; algorithms are hexagons; softgoals are "
-            "clouds; indicators use traffic lights; entities are structured boxes; operators are "
-            "rectangles; and notes have folded corners.",
+            "All three views use the same title treatment, type scale, line weight, spacing, and "
+            "footer key. Their shapes retain the Session 3 GR4ML meaning: goals are ovals, "
+            "algorithms are hexagons, softgoals are clouds, indicators use traffic lights, "
+            "entities are structured boxes, operators are rectangles, and notes have folded corners.",
             PSTYLE["Body"],
         ),
         pdf_image("gr4ml_business_view.png", "Figure 1. GR4ML Business View."),
@@ -1264,12 +1380,14 @@ def build_pdf_story() -> list[Any]:
         ),
         pdf_image("gr4ml_analytics_design_view.png", "Figure 2. GR4ML Analytics Design View."),
         Paragraph(
-            "Weighted implicit feedback drives training, leakage-safe evaluation, and unseen-item ranking.",
+            "The goal is to rank unseen products. Item-based collaborative filtering was selected "
+            "because it is inexpensive to serve and its similarities are easy to inspect.",
             PSTYLE["Body"],
         ),
         pdf_image("gr4ml_data_preparation_view.png", "Figure 3. GR4ML Data Preparation View."),
         Paragraph(
-            "Events are validated, deduplicated, weighted, aggregated, evaluated, fitted, and persisted.",
+            "Events are validated, deduplicated, weighted, and aggregated with the product catalogue "
+            "to form the user-item matrix used by evaluation and training.",
             PSTYLE["Body"],
         ),
         Paragraph("4. Top Three Quality Requirements", PSTYLE["H2"]),
@@ -1301,13 +1419,22 @@ def build_pdf_story() -> list[Any]:
         pdf_table(
             [
                 ["Component", "Type", "Responsibility"],
+                ["Streamlit UI", "Presentation", "All five user-facing flows."],
                 ["Command Service", "Non-ML", "Writes and invokes training."],
                 ["Training pipeline", "ML", "Prepare, evaluate, fit, persist."],
                 ["Raw event log", "Data", "Command-side source of truth."],
+                ["User profiles", "Data", "Names and cold-start interests."],
                 ["Read model", "ML artifact", "Similarity, features, metadata."],
-                ["Query Service", "ML serving", "Reload and rank unseen items."],
+                ["Query Service", "ML serving", "Collaborative/cold-start reads."],
             ],
             [1.5, 1.25, 3.75],
+        ),
+        Paragraph(
+            "<b>Request paths.</b> Recommendation reads go from Streamlit to the Query Service, "
+            "which combines the saved profile, model artifact, and catalogue without changing the "
+            "event log. User, interaction, and training operations go to the Command Service. "
+            "Training publishes a new artifact version that the Query Service reloads.",
+            PSTYLE["Body"],
         ),
         Paragraph("6. Selected Architectural Patterns", PSTYLE["H2"]),
         Paragraph("6.1 Pattern 1 - Microservices", PSTYLE["H3"]),
@@ -1324,8 +1451,9 @@ def build_pdf_story() -> list[Any]:
         ),
         Paragraph("6.2 Pattern 2 - CQRS", PSTYLE["H3"]),
         Paragraph(
-            "<b>Application.</b> Interaction/training commands mutate the write side; recommendation "
-            "and model-info queries read an immutable artifact. The query process reloads on version change.",
+            "<b>Application.</b> User, interaction, and training commands mutate the write side. "
+            "Product, user, activity, model, and recommendation queries remain read-only. New users "
+            "receive an interest-based cold-start ranking.",
             PSTYLE["Body"],
         ),
         Paragraph(
@@ -1335,44 +1463,111 @@ def build_pdf_story() -> list[Any]:
         ),
         Paragraph("7. ML Implementation", PSTYLE["H2"]),
         Paragraph(
-            "The pipeline exposes LOAD, PREPARE, EVALUATE, TRAIN, and PERSIST. It contains 80 users, "
-            "60 items, and 960 deterministic seed events before the live command.",
+            "The pipeline exposes LOAD, PREPARE, EVALUATE, TRAIN, and PERSIST. The deterministic seed "
+            f"contains 80 users, 60 items, and 960 events; the artifact used here records "
+            f"{METADATA['training_events']} events.",
             PSTYLE["Body"],
         ),
-        pdf_image("training_terminal.png", "Figure 5. Actual training output and quality gate."),
         pdf_image(
             "ml_execution_metrics.png",
-            "Figure 6. Matrix, offline metrics, and recommendation scores.",
+            "Figure 5. Prepared matrix, offline metrics, and recommendation scores.",
         ),
         pdf_callout(
-            "Executed result",
+            "Offline evaluation result",
             f"Precision@5={metrics['precision_at_k']:.3f}; "
             f"Recall@5={metrics['recall_at_k']:.3f}; "
             f"Hit Rate@5={metrics['hit_rate_at_k']:.3f}; "
             f"Coverage@5={metrics['catalogue_coverage_at_k']:.3f}.",
         ),
-        Paragraph("8. Pattern Implementation and API Evidence", PSTYLE["H2"]),
-        pdf_image("command_service_api.png", "Figure 7. Command Service OpenAPI surface."),
-        pdf_image("query_service_api.png", "Figure 8. Query Service OpenAPI surface."),
-        pdf_image(
-            "live_execution.png", "Figure 9. Live command, training, and recommendation query."
-        ),
         Paragraph(
-            f"Model {query['model_version']} returned "
-            + ", ".join(item["item_id"] for item in query["recommendations"])
-            + " for u007. The Query Service exposes no command route.",
+            "<b>Metric reading.</b> Precision@5 measures relevant products among the five returned; "
+            "Recall@5 measures recovery of held-out products; Hit Rate@5 checks whether a user gets "
+            "at least one hit; and Coverage@5 measures how much of the catalogue appears across "
+            "all top-5 lists. These are offline results on synthetic data.",
             PSTYLE["Body"],
         ),
-        Paragraph("9. Verification and Reproducibility", PSTYLE["H2"]),
+        Paragraph("8. Pattern Implementation and API Evidence", PSTYLE["H2"]),
+        pdf_image(
+            "command_service_api.png",
+            "Figure 6. Command Service contract shown in Swagger UI.",
+        ),
+        pdf_image(
+            "query_service_api.png",
+            "Figure 7. Query Service contract shown in Swagger UI.",
+        ),
+        Paragraph(
+            "The Swagger pages show the CQRS split in the running application. The command side "
+            "owns mutations; the query side exposes no command route.",
+            PSTYLE["Body"],
+        ),
+        pdf_callout(
+            "Browser capture context",
+            "The isolated browser run used command port 8111 to keep its clean interaction file "
+            "separate; the normal Makefile and architecture port remains 8101. Model versions "
+            "change after each training run.",
+        ),
+        Paragraph("9. UI Flows Captured in the Browser", PSTYLE["H2"]),
+        Paragraph(
+            "<b>Flow 1 - Recommendation.</b> Select a named customer and top-k value; display named "
+            "products, scores, strategy, and three recent actions.",
+            PSTYLE["Body"],
+        ),
+        pdf_image(
+            "ui_recommendation_flow.png",
+            "Figure 8. Recommendations and the three latest actions.",
+        ),
+        Paragraph(
+            "<b>Flow 2 - Interaction.</b> Select customer, product, and action; submit a validated "
+            "command to the write-side event log.",
+            PSTYLE["Body"],
+        ),
+        pdf_image(
+            "ui_interaction_flow.png",
+            "Figure 9. Interaction form after recording an event.",
+        ),
+        Paragraph(
+            "<b>Flow 3 - Users.</b> Review five defaults and create a profile with a primary interest.",
+            PSTYLE["Body"],
+        ),
+        pdf_image(
+            "ui_users_flow.png",
+            "Figure 10. Default users and the add-user form.",
+        ),
+        Paragraph(
+            "<b>Flow 4 - Cold start.</b> A new user receives products from the selected interest "
+            "until trained interaction history exists. Recorded actions and retraining can later "
+            "move the profile to collaborative recommendations.",
+            PSTYLE["Body"],
+        ),
+        pdf_image(
+            "ui_cold_start_flow.png",
+            "Figure 11. Interest-based recommendations for a new user.",
+        ),
+        Paragraph(
+            "<b>Flow 5 - Training.</b> Configure evaluation controls and execute the five-stage "
+            "training/persistence workflow.",
+            PSTYLE["Body"],
+        ),
+        pdf_image(
+            "ui_training_flow.png",
+            "Figure 12. Training controls and the completed run summary.",
+        ),
+        Paragraph(
+            "<b>Captured training result.</b> One click was added to the 960-event seed before "
+            "training. The screenshot therefore records 961 events, 80 users, 60 products, "
+            "Precision@5 0.330, Recall@5 0.825, Hit Rate@5 0.950, and full catalogue coverage.",
+            PSTYLE["Body"],
+        ),
+        Paragraph("10. Verification and Reproducibility", PSTYLE["H2"]),
         pdf_table(
             [
                 ["Check", "Result"],
                 ["Ruff lint / format", "Passed"],
-                ["Mypy", "17 source files passed"],
+                ["Mypy", "20 source files passed"],
                 ["Pytest", "8 tests passed"],
-                ["Coverage", "89%"],
-                ["Live HTTP", "Passed; five recommendations"],
-                ["Notebook", "All code cells executed; outputs saved"],
+                ["Coverage", "88%"],
+                ["Browser evidence", "Five UI flows + two Swagger pages"],
+                ["Notebook", "All cells executed; browser evidence saved"],
             ],
             [2.4, 4.1],
         ),
@@ -1387,23 +1582,23 @@ def build_pdf_story() -> list[Any]:
                 python scripts/train_and_evaluate.py
                 uvicorn ecom_ml.command_service.main:app --port 8101
                 uvicorn ecom_ml.query_service.main:app --port 8102
-                python scripts/run_demo.py
+                streamlit run frontend/app.py --server.port 8501
                 make check
                 """
             ).strip(),
             PSTYLE["Code"],
         ),
-        Paragraph("10. Limitations and Production Roadmap", PSTYLE["H2"]),
+        Paragraph("11. Limitations and Production Roadmap", PSTYLE["H2"]),
         Paragraph(
-            "This academic prototype uses synthetic events, CSV, and a shared local artifact. It "
-            "does not prove online uplift or production latency. Production requires a broker, "
-            "warehouse, feature store, model registry, fallbacks, security, drift monitoring, load "
-            "tests, and an A/B experiment.",
+            "This prototype uses synthetic events, CSV, and a shared local artifact. Online uplift "
+            "and production latency have not been measured. A production version would need a "
+            "broker, warehouse, feature store, model registry, stronger hybrid cold start, security, "
+            "drift monitoring, load tests, and an A/B experiment.",
             PSTYLE["Body"],
         ),
-        Paragraph("Appendix A - Key Executed Code", PSTYLE["H1"]),
+        Paragraph("Appendix A - Key Code Excerpts", PSTYLE["H1"]),
         Paragraph(
-            "The notebook embeds complete modules. These excerpts are loaded from actual source.",
+            "The notebook embeds the relevant modules. These excerpts come from the same source files.",
             PSTYLE["Body"],
         ),
     ]

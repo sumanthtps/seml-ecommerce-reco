@@ -1,23 +1,16 @@
-"""Generate GR4ML diagrams and execution-backed visual evidence."""
+"""Generate the diagrams and metrics figure used in the submission."""
 
 from __future__ import annotations
 
-import io
-import json
-import textwrap
 from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Circle, Ellipse, FancyArrowPatch, FancyBboxPatch, Polygon, Rectangle
-from PIL import Image, ImageDraw, ImageFont
 
-from ecom_ml.command_service.main import create_app as create_command_app
 from ecom_ml.ml.artifact import load_artifact
 from ecom_ml.ml.data import load_interactions, prepare_interactions
-from ecom_ml.ml.pipeline import train_pipeline
-from ecom_ml.query_service.main import create_app as create_query_app
 
 ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE = ROOT / "evidence"
@@ -149,18 +142,21 @@ def finish_diagram(
     plt.close(figure)
 
 
-def add_view_banner(axis: Any, text: str) -> None:
-    banner = FancyBboxPatch(
-        (0.02, 0.91),
-        0.29,
-        0.065,
-        boxstyle="round,pad=0.008,rounding_size=0.025",
-        facecolor="#FFC20A",
-        edgecolor="#FFC20A",
-        linewidth=1,
+def add_notation(axis: Any, text: str) -> None:
+    axis.text(
+        0.50,
+        0.11,
+        f"Notation: {text}",
+        ha="center",
+        va="center",
+        fontsize=8.2,
+        color=SLATE,
+        bbox={
+            "boxstyle": "round,pad=0.4",
+            "facecolor": LIGHT_GRAY,
+            "edgecolor": "#CBD5E1",
+        },
     )
-    axis.add_patch(banner)
-    axis.text(0.165, 0.943, text, ha="center", va="center", fontsize=14, fontweight="bold")
 
 
 def add_goal(
@@ -170,21 +166,36 @@ def add_goal(
     text: str,
     *,
     badge: str | None = None,
-    badge_fontsize: float = 27,
+    badge_fontsize: float = 9,
     fontsize: float = 9.5,
 ) -> None:
     patch = Ellipse(center, size[0], size[1], facecolor="white", edgecolor="black", linewidth=1.4)
     axis.add_patch(patch)
     if badge:
+        badge_center = (
+            center[0] - size[0] / 2 + 0.018,
+            center[1] + size[1] / 2 - 0.018,
+        )
+        axis.add_patch(
+            Circle(
+                badge_center,
+                0.016,
+                facecolor=LIGHT_BLUE,
+                edgecolor=NAVY,
+                linewidth=1.0,
+                zorder=3,
+            )
+        )
         axis.text(
-            center[0] - size[0] / 2 - 0.002,
-            center[1],
+            badge_center[0],
+            badge_center[1],
             badge,
             ha="center",
             va="center",
             fontsize=badge_fontsize,
             fontweight="bold",
-            fontfamily="serif",
+            color=NAVY,
+            zorder=4,
         )
     axis.text(center[0], center[1], text, ha="center", va="center", fontsize=fontsize)
 
@@ -437,6 +448,7 @@ def add_polyline_link(
     dashed: bool = False,
     arrowstyle: str = "-|>",
     linewidth: float = 1.1,
+    color: str = "black",
 ) -> None:
     """Draw a routed connector so relationships can avoid model elements."""
     linestyle = "--" if dashed else "-"
@@ -444,7 +456,7 @@ def add_polyline_link(
         axis.plot(
             [point[0] for point in points[:-1]],
             [point[1] for point in points[:-1]],
-            color="black",
+            color=color,
             linewidth=linewidth,
             linestyle=linestyle,
         )
@@ -455,7 +467,7 @@ def add_polyline_link(
         mutation_scale=13,
         linewidth=linewidth,
         linestyle=linestyle,
-        color="black",
+        color=color,
         shrinkA=0,
         shrinkB=2,
     )
@@ -475,409 +487,310 @@ def add_evaluates_hashes(axis: Any, center: tuple[float, float], *, rotation: fl
     )
 
 
-def add_business_legend(axis: Any) -> None:
-    legend = FancyBboxPatch(
-        (0.73, 0.11),
-        0.25,
-        0.79,
-        boxstyle="round,pad=0.012,rounding_size=0.025",
-        facecolor="#E6E6E6",
-        edgecolor="black",
-        linewidth=1,
-    )
-    axis.add_patch(legend)
-    axis.text(0.855, 0.865, "Legend for Business View", ha="center", fontsize=10, fontweight="bold")
-    add_actor(axis, (0.77, 0.76), "Actor", scale=0.65)
-    add_goal(axis, (0.90, 0.77), (0.13, 0.075), "Business\nGoal", fontsize=7.2)
-    add_goal(
-        axis,
-        (0.79, 0.60),
-        (0.105, 0.075),
-        "Decision\nGoal",
-        badge="D",
-        badge_fontsize=19,
-        fontsize=6.7,
-    )
-    add_goal(
-        axis,
-        (0.925, 0.60),
-        (0.105, 0.075),
-        "Question\nGoal",
-        badge="Q",
-        badge_fontsize=19,
-        fontsize=6.7,
-    )
-    add_indicator(axis, (0.77, 0.43), "Indicator", scale=0.75)
-    add_structured_box(
-        axis, (0.91, 0.43), (0.13, 0.10), "Insight", ["+type", "+input/output"], fontsize=5.6
-    )
-    axis.text(0.755, 0.28, "desires", fontsize=7.2)
-    add_link(axis, (0.82, 0.285), (0.94, 0.285), arrowstyle="->")
-    axis.text(0.755, 0.22, "answers", fontsize=7.2)
-    add_link(axis, (0.82, 0.225), (0.94, 0.225), dashed=True, arrowstyle="->")
-    axis.text(0.755, 0.16, "evaluates", fontsize=7.2)
-    add_link(axis, (0.83, 0.165), (0.94, 0.165))
-    add_evaluates_hashes(axis, (0.85, 0.165))
-
-
 def business_view() -> None:
-    figure, axis = plt.subplots(figsize=(13, 7.2))
-    add_view_banner(axis, "Business View")
-    add_actor(axis, (0.07, 0.78), "Storefront\nmanager", scale=1.05)
-    add_goal(axis, (0.34, 0.78), (0.31, 0.13), "Increase revenue per session", fontsize=10)
+    figure, axis = plt.subplots(figsize=(13, 6.8))
+    add_actor(axis, (0.08, 0.60), "Storefront\nmanager", scale=0.95)
+    add_goal(axis, (0.29, 0.66), (0.23, 0.14), "Increase revenue\nper session", fontsize=10)
+    add_goal(
+        axis,
+        (0.54, 0.66),
+        (0.20, 0.14),
+        "Choose products\nto display",
+        badge="D",
+        fontsize=9.5,
+    )
+    add_goal(
+        axis,
+        (0.80, 0.66),
+        (0.24, 0.15),
+        "Which unseen products\nwill this user engage with?",
+        badge="Q",
+        fontsize=8.8,
+    )
     add_indicator(
         axis,
-        (0.61, 0.86),
-        "CTR uplift / Average order value",
-        label_side="left",
-        scale=1.05,
-    )
-    add_goal(
-        axis,
-        (0.34, 0.58),
-        (0.34, 0.13),
-        "Choose products to display",
-        badge="D",
-        fontsize=9.7,
-    )
-    add_goal(
-        axis,
-        (0.34, 0.39),
-        (0.46, 0.14),
-        "Which unseen products will user u\nmost likely engage with?",
-        badge="Q",
-        fontsize=9.2,
+        (0.29, 0.38),
+        "CTR uplift and\naverage order value",
+        label_side="right",
+        scale=0.95,
     )
     add_structured_box(
         axis,
-        (0.34, 0.17),
-        (0.58, 0.22),
+        (0.80, 0.35),
+        (0.30, 0.19),
         "Top-5 Recommendation Insight",
         [
-            "+type: Predictive ranking",
-            "+input: Weighted user-item profile",
-            "+output: Ranked unseen products",
-            "+usageFrequency: Per request",
-            "+updateFrequency: On model retraining",
-            "+learningPeriod: Available interaction history",
+            "Type: predictive ranking",
+            "Input: user profile + item similarity",
+            "Output: five ranked unseen products",
+            "Updated after model training",
         ],
-        fontsize=7.2,
+        fontsize=7.4,
     )
-    add_link(axis, (0.105, 0.80), (0.18, 0.80), label="desires", arrowstyle="->")
-    add_link(axis, (0.34, 0.715), (0.34, 0.645))
-    axis.text(0.36, 0.682, "AND", fontsize=8)
-    add_link(axis, (0.34, 0.515), (0.34, 0.46))
-    axis.text(0.36, 0.488, "AND", fontsize=8)
-    add_link(axis, (0.34, 0.28), (0.34, 0.32), label="answers", dashed=True, arrowstyle="->")
-    add_link(axis, (0.49, 0.80), (0.595, 0.85))
-    add_evaluates_hashes(axis, (0.54, 0.825), rotation=25)
-    axis.text(0.50, 0.87, "evaluates", fontsize=7.5)
-    add_business_legend(axis)
+    add_link(axis, (0.12, 0.62), (0.16, 0.65), label="desires", arrowstyle="->")
+    add_link(axis, (0.405, 0.66), (0.44, 0.66), arrowstyle="->")
+    axis.text(0.422, 0.76, "refined into", ha="center", fontsize=7.8, color=SLATE)
+    add_link(axis, (0.64, 0.66), (0.68, 0.66), arrowstyle="->")
+    axis.text(0.66, 0.76, "requires an answer", ha="center", fontsize=7.8, color=SLATE)
+    add_link(axis, (0.80, 0.45), (0.80, 0.585), label="answers", dashed=True, arrowstyle="->")
+    add_link(axis, (0.31, 0.43), (0.30, 0.59))
+    add_evaluates_hashes(axis, (0.305, 0.50), rotation=84)
+    axis.text(0.34, 0.50, "evaluates", fontsize=7.8, color=SLATE)
+    add_notation(
+        axis,
+        "actor | oval = goal | D = decision goal | Q = question goal | "
+        "traffic light = indicator | structured box = insight",
+    )
     finish_diagram(
         figure,
         axis,
         "gr4ml_business_view.png",
-        "",
+        "GR4ML Business View - From Business Goal to Recommendation Insight",
         legend=False,
     )
 
 
-def add_analytics_legend(axis: Any) -> None:
-    legend = FancyBboxPatch(
-        (0.73, 0.10),
-        0.25,
-        0.80,
-        boxstyle="round,pad=0.012,rounding_size=0.025",
-        facecolor="#E6E6E6",
-        edgecolor="black",
-        linewidth=1,
-    )
-    axis.add_patch(legend)
-    axis.text(
-        0.855,
-        0.865,
-        "Legend for Analytics Design View",
-        ha="center",
-        fontsize=9.5,
-        fontweight="bold",
-    )
-    add_algorithm(axis, (0.79, 0.75), (0.11, 0.075), "Algorithm", fontsize=7.2)
-    add_goal(axis, (0.92, 0.75), (0.12, 0.075), "Analytics\nGoal", fontsize=7.1)
-    add_softgoal(axis, (0.79, 0.60), (0.11, 0.07), "Softgoal", fontsize=7.1)
-    add_indicator(axis, (0.91, 0.60), "Indicator", scale=0.75)
-    axis.text(0.755, 0.46, "performs", fontsize=7.2)
-    add_link(axis, (0.82, 0.465), (0.95, 0.465), arrowstyle="-|>")
-    axis.text(0.755, 0.39, "influence", fontsize=7.2)
-    add_link(axis, (0.82, 0.395), (0.95, 0.395), dashed=True, arrowstyle="-|>")
-    axis.text(0.755, 0.32, "evaluates", fontsize=7.2)
-    add_link(axis, (0.82, 0.325), (0.95, 0.325))
-    add_evaluates_hashes(axis, (0.85, 0.325))
-    axis.text(0.755, 0.25, "generates", fontsize=7.2)
-    add_link(axis, (0.82, 0.255), (0.95, 0.255), dashed=True, arrowstyle="->")
-    axis.text(0.755, 0.18, "association", fontsize=7.2)
-    add_link(axis, (0.83, 0.185), (0.95, 0.185))
-
-
 def analytics_view() -> None:
-    figure, axis = plt.subplots(figsize=(13, 7.2))
-    add_view_banner(axis, "Analytics Design View")
+    figure, axis = plt.subplots(figsize=(13, 6.8))
     add_goal(
         axis,
-        (0.31, 0.66),
-        (0.32, 0.13),
-        "Prediction and ranking of\nunseen catalogue products",
-        fontsize=9.7,
+        (0.48, 0.72),
+        (0.32, 0.14),
+        "Predict and rank unseen\ncatalogue products",
+        fontsize=10,
     )
-    add_indicator(axis, (0.08, 0.82), "Precision@5", scale=0.90)
-    add_indicator(axis, (0.43, 0.82), "Coverage@5", scale=0.90)
-    add_algorithm(axis, (0.13, 0.39), (0.18, 0.105), "Item-based\nCollaborative Filtering")
-    add_algorithm(axis, (0.32, 0.39), (0.17, 0.105), "Matrix\nFactorization")
-    add_algorithm(axis, (0.50, 0.39), (0.16, 0.105), "Popularity\nBaseline")
-    add_softgoal(axis, (0.62, 0.70), (0.16, 0.085), "Recommendation\nrelevance")
-    add_softgoal(axis, (0.62, 0.51), (0.16, 0.085), "Low latency")
-    add_softgoal(axis, (0.62, 0.25), (0.16, 0.085), "Interpretability")
-    for start in [(0.13, 0.445), (0.32, 0.445), (0.50, 0.445)]:
-        add_link(axis, start, (0.31, 0.595), arrowstyle="-|>")
-    axis.text(0.21, 0.52, "performs", fontsize=7.7)
-    add_link(axis, (0.21, 0.71), (0.08, 0.78))
-    add_evaluates_hashes(axis, (0.145, 0.745), rotation=-28)
-    add_link(axis, (0.39, 0.71), (0.43, 0.78))
-    add_evaluates_hashes(axis, (0.41, 0.745), rotation=25)
-    add_link(axis, (0.47, 0.68), (0.54, 0.70))
-    add_link(axis, (0.46, 0.64), (0.54, 0.52))
-    add_polyline_link(
-        axis,
-        [(0.22, 0.35), (0.22, 0.14), (0.71, 0.14), (0.71, 0.51), (0.695, 0.51)],
-        dashed=True,
+    add_indicator(axis, (0.17, 0.78), "Precision@5", scale=0.85)
+    add_indicator(axis, (0.80, 0.78), "Coverage@5", scale=0.85)
+    add_algorithm(axis, (0.25, 0.40), (0.20, 0.12), "Item-based\nCollaborative Filtering")
+    add_algorithm(axis, (0.48, 0.40), (0.18, 0.12), "Matrix\nFactorization")
+    add_algorithm(axis, (0.69, 0.40), (0.17, 0.12), "Popularity\nBaseline")
+    axis.text(
+        0.25,
+        0.31,
+        "selected for the prototype",
+        ha="center",
+        fontsize=7.8,
+        color=TEAL,
+        fontweight="bold",
     )
-    axis.text(0.24, 0.16, "+", fontsize=11, fontweight="bold")
-    add_link(axis, (0.50, 0.335), (0.57, 0.27), dashed=True, arrowstyle="-|>")
-    axis.text(0.535, 0.31, "+", fontsize=11, fontweight="bold")
+    add_softgoal(axis, (0.85, 0.62), (0.17, 0.09), "Recommendation\nrelevance")
+    add_softgoal(axis, (0.85, 0.47), (0.17, 0.09), "Low latency")
+    add_softgoal(axis, (0.85, 0.32), (0.17, 0.09), "Interpretability")
+    for start in [(0.25, 0.46), (0.48, 0.46), (0.69, 0.46)]:
+        add_link(axis, start, (0.48, 0.65), arrowstyle="-|>")
+    axis.text(0.45, 0.54, "performs", fontsize=7.8, color=SLATE)
+    add_link(axis, (0.34, 0.75), (0.19, 0.78))
+    add_evaluates_hashes(axis, (0.26, 0.76), rotation=-8)
+    add_link(axis, (0.64, 0.75), (0.78, 0.78))
+    add_evaluates_hashes(axis, (0.71, 0.76), rotation=8)
+    add_link(axis, (0.63, 0.71), (0.76, 0.63))
+    add_link(axis, (0.63, 0.68), (0.76, 0.49))
+    add_link(axis, (0.30, 0.35), (0.77, 0.33), dashed=True, arrowstyle="-|>")
+    axis.text(0.55, 0.32, "+ supports", fontsize=7.5, color=TEAL)
     add_link(
         axis,
-        (0.15, 0.62),
-        (0.035, 0.62),
+        (0.32, 0.72),
+        (0.235, 0.61),
         dashed=True,
         arrowstyle="->",
     )
-    axis.text(
-        0.085,
-        0.575,
-        "generates\nTop-5 insight",
-        ha="center",
-        va="center",
-        fontsize=7.5,
-        bbox={"facecolor": "white", "edgecolor": "none", "pad": 0.8},
+    axis.text(0.27, 0.68, "generates", ha="center", fontsize=7.8, color=SLATE)
+    add_structured_box(
+        axis,
+        (0.14, 0.57),
+        (0.19, 0.10),
+        "Top-5 Recommendation",
+        ["ranked unseen products"],
+        fontsize=6.8,
     )
-    add_analytics_legend(axis)
+    add_notation(
+        axis,
+        "oval = analytics goal | hexagon = algorithm | cloud = softgoal | "
+        "traffic light = indicator | dashed arrow = influence/generates",
+    )
     finish_diagram(
         figure,
         axis,
         "gr4ml_analytics_design_view.png",
-        "",
+        "GR4ML Analytics Design View - Algorithm Choice and Quality Trade-offs",
         legend=False,
     )
 
 
-def add_data_legend(axis: Any) -> None:
-    legend = FancyBboxPatch(
-        (0.73, 0.10),
-        0.25,
-        0.80,
-        boxstyle="round,pad=0.012,rounding_size=0.025",
-        facecolor="#E6E6E6",
-        edgecolor="black",
-        linewidth=1,
-    )
-    axis.add_patch(legend)
-    axis.text(
-        0.855,
-        0.865,
-        "Legend for Data Preparation View",
-        ha="center",
-        fontsize=9.5,
-        fontweight="bold",
-    )
-    add_operator(axis, (0.79, 0.72), (0.11, 0.075), "Operator", fontsize=7.3)
-    add_structured_box(
-        axis, (0.92, 0.72), (0.11, 0.13), "Entity", ["- PK", "- Attribute"], fontsize=6.2
-    )
-    add_note(axis, (0.80, 0.53), (0.11, 0.09), "Note", fontsize=7)
-    axis.text(0.755, 0.40, "Data flow", fontsize=7.2)
-    add_link(axis, (0.83, 0.405), (0.95, 0.405), arrowstyle="->")
-    axis.text(0.755, 0.32, "Inputs / output", fontsize=7.2)
-    add_link(axis, (0.83, 0.325), (0.95, 0.325), dashed=True)
-    axis.text(0.755, 0.24, "Relationship", fontsize=7.2)
-    add_link(axis, (0.83, 0.245), (0.95, 0.245))
-
-
 def data_preparation_view() -> None:
-    figure, axis = plt.subplots(figsize=(13, 7.2))
-    add_view_banner(axis, "Data Preparation View")
+    figure, axis = plt.subplots(figsize=(13, 6.8))
     add_structured_box(
         axis,
-        (0.12, 0.66),
-        (0.20, 0.34),
+        (0.13, 0.60),
+        (0.20, 0.31),
         "Interaction Event",
         [
-            "- event_id (PK)",
-            "- timestamp",
-            "- user_id",
-            "- item_id",
-            "- action",
+            "event_id (PK)",
+            "timestamp",
+            "user_id",
+            "item_id",
+            "action",
         ],
-        fontsize=7.5,
+        fontsize=7.7,
     )
     add_structured_box(
         axis,
-        (0.12, 0.26),
-        (0.18, 0.23),
+        (0.35, 0.31),
+        (0.18, 0.19),
         "Product Catalogue",
-        ["- item_id (PK)", "- category", "- active"],
+        ["item_id (PK)", "product name", "category"],
         fontsize=7.5,
     )
     add_operator(
         axis,
-        (0.35, 0.68),
-        (0.17, 0.10),
+        (0.35, 0.63),
+        (0.16, 0.11),
         "Validate and\nDeduplicate",
-        fontsize=8.3,
+        fontsize=8.5,
     )
     add_operator(
         axis,
-        (0.55, 0.68),
-        (0.17, 0.10),
+        (0.54, 0.63),
+        (0.15, 0.11),
         "Apply Action\nWeights",
-        fontsize=8.3,
+        fontsize=8.5,
     )
     add_operator(
         axis,
-        (0.55, 0.47),
-        (0.18, 0.10),
+        (0.72, 0.63),
+        (0.16, 0.11),
         "Aggregate by\nUser and Item",
-        fontsize=8.3,
+        fontsize=8.5,
     )
     add_structured_box(
         axis,
-        (0.36, 0.27),
-        (0.27, 0.25),
+        (0.87, 0.39),
+        (0.21, 0.28),
         "Prepared User-Item Matrix",
         [
-            "- user_id (PK)",
-            "- P001 ... P060",
-            "- weighted interaction values",
-            "- 80 users x 60 items",
+            "user_id (PK)",
+            "P001 ... P060",
+            "weighted interaction values",
+            "training input",
         ],
-        fontsize=7.2,
+        fontsize=7.3,
     )
     add_note(
         axis,
-        (0.64, 0.34),
-        (0.14, 0.10),
+        (0.54, 0.42),
+        (0.15, 0.11),
         "view=1, click=2\ncart=3, purchase=5",
-        fontsize=7.0,
+        fontsize=7.3,
     )
-    add_link(axis, (0.22, 0.69), (0.265, 0.69), label="outputs", dashed=True)
-    add_link(axis, (0.435, 0.68), (0.465, 0.68), arrowstyle="->")
-    add_link(axis, (0.55, 0.63), (0.55, 0.52), arrowstyle="->")
-    add_link(
-        axis,
-        (0.48, 0.42),
-        (0.48, 0.395),
-        label="output",
-        dashed=True,
-        label_offset=(0.043, 0.013),
-    )
-    axis.plot(
-        [0.21, 0.28, 0.46],
-        [0.375, 0.44, 0.44],
-        color="black",
-        linewidth=1.1,
-        linestyle="--",
-    )
-    axis.text(0.35, 0.455, "input", fontsize=7.8)
-    add_link(axis, (0.12, 0.49), (0.12, 0.375), label="relationship", label_offset=(0.06, 0.0))
+    add_link(axis, (0.23, 0.63), (0.27, 0.63), label="input", dashed=True)
+    add_link(axis, (0.43, 0.63), (0.465, 0.63), arrowstyle="->")
+    add_link(axis, (0.615, 0.63), (0.64, 0.63), arrowstyle="->")
+    add_link(axis, (0.80, 0.61), (0.80, 0.535), label="output", dashed=True, arrowstyle="->")
     add_polyline_link(
         axis,
-        [(0.62, 0.63), (0.69, 0.60), (0.69, 0.39), (0.67, 0.39)],
-        arrowstyle="-",
-    )
-    add_link(
-        axis,
-        (0.495, 0.24),
-        (0.69, 0.24),
-        label="required for\npersonalized ranking",
+        [(0.44, 0.31), (0.64, 0.31), (0.68, 0.57)],
         dashed=True,
         arrowstyle="->",
-        label_offset=(0.0, -0.045),
+        color=SLATE,
     )
-    add_data_legend(axis)
+    axis.text(0.59, 0.29, "catalogue input", fontsize=7.6, color=SLATE, ha="center")
+    add_link(axis, (0.54, 0.47), (0.54, 0.57), arrowstyle="-")
+    axis.text(
+        0.87,
+        0.20,
+        "used for model training\nand recommendation ranking",
+        ha="center",
+        fontsize=8,
+        color=SLATE,
+    )
+    add_notation(
+        axis,
+        "structured box = entity | rectangle = operator | folded box = note | "
+        "solid arrow = data flow | dashed arrow = input/output",
+    )
     finish_diagram(
         figure,
         axis,
         "gr4ml_data_preparation_view.png",
-        "",
+        "GR4ML Data Preparation View - From Raw Events to the Training Matrix",
         legend=False,
     )
 
 
 def architecture_view() -> None:
-    figure, axis = plt.subplots(figsize=(13, 7))
+    figure, axis = plt.subplots(figsize=(13, 6.8))
+    axis.text(0.035, 0.82, "PRESENTATION", fontsize=8, fontweight="bold", color=SLATE)
+    axis.text(0.035, 0.57, "SERVICES", fontsize=8, fontweight="bold", color=SLATE)
+    axis.text(0.035, 0.25, "DATA + ML", fontsize=8, fontweight="bold", color=SLATE)
+    axis.plot([0.03, 0.97], [0.74, 0.74], color="#E2E8F0", linewidth=1)
+    axis.plot([0.03, 0.97], [0.43, 0.43], color="#E2E8F0", linewidth=1)
     add_rectangle(
-        axis, (0.08, 0.68), (0.14, 0.13), "Storefront /\nanalyst", face="#FEECEC", edge="#B91C1C"
+        axis,
+        (0.50, 0.84),
+        (0.34, 0.14),
+        "STREAMLIT UI :8501\n\nRecommend  •  Record interaction  •  Users  •  Train",
+        face="#FEECEC",
+        edge="#B91C1C",
+        fontsize=8.8,
     )
     add_rectangle(
         axis,
-        (0.31, 0.72),
-        (0.27, 0.29),
+        (0.29, 0.57),
+        (0.34, 0.22),
         "COMMAND SERVICE :8101\n\n"
-        "POST /commands/interactions\n"
-        "POST /commands/train\n\n"
-        "Write-optimized CQRS model",
+        "Create user  •  Record interaction  •  Train model\n"
+        "Owns state-changing operations",
         face=LIGHT_BLUE,
         edge=BLUE,
-        fontsize=9,
+        fontsize=8.5,
     )
     add_rectangle(
         axis,
-        (0.69, 0.72),
-        (0.27, 0.29),
+        (0.71, 0.57),
+        (0.34, 0.22),
         "QUERY SERVICE :8102\n\n"
-        "GET /queries/recommendations\n"
-        "GET /queries/model-info\n\n"
-        "Read-optimized CQRS model",
+        "Recommendations  •  Users  •  Products\n"
+        "Recent actions  •  Model information",
         face=LIGHT_TEAL,
         edge=TEAL,
-        fontsize=9,
+        fontsize=8.5,
     )
-    add_rectangle(axis, (0.31, 0.33), (0.20, 0.12), "Raw event log\nCSV / command store")
-    add_activity(axis, (0.49, 0.48), (0.19, 0.12), "ML training\npipeline")
     add_rectangle(
         axis,
-        (0.69, 0.33),
-        (0.21, 0.12),
-        "Versioned read model\nNPZ + metadata",
+        (0.50, 0.37),
+        (0.20, 0.12),
+        "User profile store\nnames + interests",
+        face=LIGHT_AMBER,
+        edge=AMBER,
+        fontsize=8,
+    )
+    add_rectangle(axis, (0.18, 0.20), (0.20, 0.11), "Interaction event log\nCSV write store")
+    add_activity(axis, (0.43, 0.20), (0.18, 0.11), "ML training\npipeline")
+    add_rectangle(
+        axis,
+        (0.71, 0.20),
+        (0.20, 0.12),
+        "Versioned model artifact\nNPZ + JSON metadata",
         face=LIGHT_PURPLE,
         edge=PURPLE,
     )
-    add_rectangle(
-        axis, (0.92, 0.68), (0.13, 0.13), "Top-5 JSON\nresponse", face=LIGHT_AMBER, edge=AMBER
-    )
-    add_arrow(axis, (0.15, 0.70), (0.175, 0.72), label="commands")
-    add_arrow(axis, (0.15, 0.64), (0.62, 0.69), label="queries", curve=-0.12)
-    add_arrow(axis, (0.31, 0.575), (0.31, 0.39), label="append")
-    add_arrow(axis, (0.38, 0.38), (0.43, 0.43), label="load")
-    add_arrow(axis, (0.58, 0.45), (0.64, 0.38), label="publish")
-    add_arrow(axis, (0.69, 0.39), (0.69, 0.575), label="reload")
-    add_arrow(axis, (0.825, 0.72), (0.855, 0.70), label="serve")
+
+    add_arrow(axis, (0.44, 0.77), (0.34, 0.68), label="commands")
+    add_arrow(axis, (0.56, 0.77), (0.66, 0.68), label="queries + results")
+    add_arrow(axis, (0.34, 0.46), (0.44, 0.40), label="create/update")
+    add_arrow(axis, (0.66, 0.46), (0.56, 0.40), label="read interest")
+    add_arrow(axis, (0.23, 0.46), (0.18, 0.26), label="append")
+    add_arrow(axis, (0.28, 0.20), (0.34, 0.20), label="load")
+    add_arrow(axis, (0.52, 0.20), (0.61, 0.20), label="publish")
+    add_arrow(axis, (0.71, 0.26), (0.71, 0.46), label="reload")
     axis.text(
         0.50,
-        0.12,
-        "Pattern 1: Microservices - independent command and query deployments\n"
-        "Pattern 2: CQRS - writes/training separated from latency-sensitive reads",
+        0.06,
+        "Microservices separate deployment and scaling. CQRS keeps writes and training away from "
+        "the latency-sensitive read path.",
         ha="center",
         va="center",
-        fontsize=10,
+        fontsize=8.5,
         color=NAVY,
         bbox={"boxstyle": "round,pad=0.5", "facecolor": LIGHT_GRAY, "edgecolor": "#CBD5E1"},
     )
@@ -885,7 +798,7 @@ def architecture_view() -> None:
         figure,
         axis,
         "system_architecture.png",
-        "System Architecture - Microservices + CQRS for an ML Recommender",
+        "System Architecture - Streamlit, CQRS Services, and the ML Lifecycle",
         legend=False,
     )
 
@@ -909,7 +822,7 @@ def metric_plot() -> None:
     image = axes[0].imshow(prepared.matrix[:25], aspect="auto", cmap="YlGnBu")
     axes[0].set_title("Prepared interaction matrix")
     axes[0].set_xlabel("60 products")
-    axes[0].set_ylabel("First 25 of 80 users")
+    axes[0].set_ylabel(f"First 25 of {len(prepared.users)} users")
     figure.colorbar(image, ax=axes[0], fraction=0.047, pad=0.03)
 
     colors = [BLUE, TEAL, PURPLE, AMBER]
@@ -943,148 +856,6 @@ def metric_plot() -> None:
     plt.close(figure)
 
 
-def monospace_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
-    candidates = [
-        Path("/System/Library/Fonts/Menlo.ttc"),
-        Path("/System/Library/Fonts/SFNSMono.ttf"),
-        Path("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"),
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return ImageFont.truetype(str(candidate), size=size)
-    return ImageFont.load_default()
-
-
-def terminal_image(lines: list[str], filename: str, title: str) -> None:
-    width, height = 1800, 1050
-    image = Image.new("RGB", (width, height), "#0B1220")
-    draw = ImageDraw.Draw(image)
-    title_font = monospace_font(30)
-    body_font = monospace_font(18)
-    draw.rounded_rectangle(
-        (30, 28, width - 30, height - 28), radius=18, fill="#111827", outline="#334155", width=3
-    )
-    draw.rectangle((30, 28, width - 30, 94), fill="#1E293B")
-    for x, color in [(62, "#EF4444"), (96, "#F59E0B"), (130, "#22C55E")]:
-        draw.ellipse((x - 10, 51, x + 10, 71), fill=color)
-    draw.text((165, 47), title, fill="#E2E8F0", font=title_font)
-    y = 125
-    for raw_line in lines:
-        wrapped = textwrap.wrap(raw_line, width=145, replace_whitespace=False) or [""]
-        for line in wrapped:
-            color = (
-                "#A7F3D0"
-                if any(token in line for token in ("PASSED", "DONE", "status"))
-                else "#E2E8F0"
-            )
-            draw.text((65, y), line, fill=color, font=body_font)
-            y += 32
-            if y > height - 70:
-                break
-        if y > height - 70:
-            break
-    image.save(EVIDENCE / filename)
-
-
-def execution_images() -> None:
-    capture = io.StringIO()
-    from contextlib import redirect_stdout
-
-    with redirect_stdout(capture):
-        train_pipeline(DATA, ARTIFACTS)
-    training_lines = ["$ python scripts/train_and_evaluate.py", *capture.getvalue().splitlines()]
-    _, metadata = load_artifact(ARTIFACTS)
-    training_lines.extend(
-        [
-            "",
-            f"precision_at_5          = {metadata['metrics']['precision_at_k']:.4f}",
-            f"recall_at_5             = {metadata['metrics']['recall_at_k']:.4f}",
-            f"hit_rate_at_5           = {metadata['metrics']['hit_rate_at_k']:.4f}",
-            f"catalogue_coverage_at_5 = {metadata['metrics']['catalogue_coverage_at_k']:.4f}",
-            "",
-            "Quality gate: Precision@5 target >= 0.30 -> PASSED",
-        ]
-    )
-    terminal_image(training_lines, "training_terminal.png", "ML training and evaluation")
-
-    transcript_path = EVIDENCE / "live_demo.json"
-    transcript = json.loads(transcript_path.read_text(encoding="utf-8"))
-    query = transcript["recommendation_query"]
-    live_lines = [
-        "$ python scripts/verify_live.py",
-        "LIVE VERIFICATION PASSED",
-        "",
-        "POST :8101/commands/interactions -> 202 accepted",
-        f"event_id={transcript['interaction_command']['event_id']}",
-        "POST :8101/commands/train -> 200 trained",
-        f"model_version={query['model_version']}",
-        "GET :8102/queries/recommendations?user_id=u007&k=5 -> 200",
-        "",
-        f"user_id={query['user_id']}",
-        f"strategy={query['strategy']}",
-        "recommendations:",
-        *[
-            f"  {rank}. {item['item_id']}  score={item['score']}"
-            for rank, item in enumerate(query["recommendations"], start=1)
-        ],
-        "",
-        "Command/write service and Query/read service ran as separate processes.",
-    ]
-    terminal_image(live_lines, "live_execution.png", "Microservices + CQRS live HTTP run")
-
-
-def api_surface_image(app: Any, filename: str, title: str, subtitle: str, accent: str) -> None:
-    schema = app.openapi()
-    endpoints: list[tuple[str, str, str]] = []
-    for path, methods in schema["paths"].items():
-        for method, operation in methods.items():
-            if method.upper() not in {"GET", "POST", "PUT", "DELETE", "PATCH"}:
-                continue
-            endpoints.append((method.upper(), path, operation.get("summary", "")))
-
-    figure, axis = plt.subplots(figsize=(12, 6.5))
-    axis.set_xlim(0, 1)
-    axis.set_ylim(0, 1)
-    axis.axis("off")
-    axis.text(0.05, 0.91, title, fontsize=20, fontweight="bold", color=NAVY)
-    axis.text(0.05, 0.855, subtitle, fontsize=10, color=SLATE)
-    y = 0.73
-    for method, path, summary in endpoints:
-        patch = FancyBboxPatch(
-            (0.05, y - 0.055),
-            0.90,
-            0.105,
-            boxstyle="round,pad=0.012,rounding_size=0.012",
-            facecolor=LIGHT_GRAY,
-            edgecolor="#CBD5E1",
-            linewidth=1.2,
-        )
-        axis.add_patch(patch)
-        axis.text(
-            0.085,
-            y,
-            method,
-            ha="center",
-            va="center",
-            fontsize=9,
-            color="white",
-            fontweight="bold",
-            bbox={"boxstyle": "round,pad=0.5", "facecolor": accent, "edgecolor": accent},
-        )
-        axis.text(0.16, y + 0.012, path, fontsize=11, fontweight="bold", color=NAVY, va="center")
-        axis.text(0.16, y - 0.025, summary, fontsize=8.5, color=SLATE, va="center")
-        y -= 0.14
-    axis.text(
-        0.05,
-        0.08,
-        "Generated directly from the running FastAPI OpenAPI contract.",
-        fontsize=8.5,
-        color=SLATE,
-    )
-    figure.savefig(EVIDENCE / filename, dpi=220, bbox_inches="tight", facecolor="white")
-    plt.close(figure)
-
-
 def main() -> int:
     EVIDENCE.mkdir(parents=True, exist_ok=True)
     if not DATA.exists():
@@ -1097,21 +868,6 @@ def main() -> int:
     data_preparation_view()
     architecture_view()
     metric_plot()
-    execution_images()
-    api_surface_image(
-        create_command_app(data_path=DATA, artifact_dir=ARTIFACTS),
-        "command_service_api.png",
-        "Recommendation Command Service",
-        "CQRS write side - interaction ingestion and model training on port 8101",
-        BLUE,
-    )
-    api_surface_image(
-        create_query_app(artifact_dir=ARTIFACTS),
-        "query_service_api.png",
-        "Recommendation Query Service",
-        "CQRS read side - model information and recommendation inference on port 8102",
-        TEAL,
-    )
     print(f"Generated evidence under {EVIDENCE}")
     return 0
 
