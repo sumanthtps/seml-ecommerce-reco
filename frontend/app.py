@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html
 import os
+from datetime import datetime
 from typing import Any, Literal
 
 import httpx
@@ -11,6 +12,13 @@ import streamlit as st
 
 COMMAND_URL = os.environ.get("SEML_COMMAND_URL", "http://127.0.0.1:8101").rstrip("/")
 QUERY_URL = os.environ.get("SEML_QUERY_URL", "http://127.0.0.1:8102").rstrip("/")
+INTERESTS = [
+    "Electronics",
+    "Home & Kitchen",
+    "Fashion",
+    "Personal Care",
+    "Fitness & Lifestyle",
+]
 
 
 class ApiError(RuntimeError):
@@ -234,6 +242,32 @@ def inject_styles() -> None:
         }
         .rec-category {color: #475569; font-size: .76rem; margin-bottom: .45rem;}
         .rec-score {color: var(--muted); font-size: .82rem;}
+        .activity-heading {margin-top: 1.25rem; margin-bottom: .2rem;}
+        .activity-card {
+            min-height: 168px;
+            padding: 1rem;
+            border: 1px solid #dfe8e5;
+            border-left: 4px solid var(--mint);
+            border-radius: 14px;
+            background: #ffffff;
+            margin: .65rem 0 .35rem;
+        }
+        .activity-action {
+            color: var(--mint);
+            font-size: .72rem;
+            font-weight: 800;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+        }
+        .activity-product {
+            color: var(--ink);
+            font-size: .97rem;
+            line-height: 1.3;
+            font-weight: 720;
+            margin: .45rem 0;
+        }
+        .activity-meta {color: #475569; font-size: .76rem;}
+        .activity-time {color: var(--muted); font-size: .72rem; margin-top: .55rem;}
         div[data-testid="stMetric"] {
             background: rgba(255,255,255,.82);
             border: 1px solid #e1e9e6;
@@ -304,6 +338,66 @@ def render_recommendations(result: dict[str, Any]) -> None:
             )
 
 
+def format_timestamp(value: Any) -> str:
+    """Format an ISO timestamp for compact activity cards."""
+    raw_value = str(value)
+    try:
+        parsed = datetime.fromisoformat(raw_value)
+    except ValueError:
+        return raw_value
+    return parsed.strftime("%d %b %Y · %H:%M %Z").strip()
+
+
+def render_recent_actions(result: dict[str, Any]) -> None:
+    """Render the three newest actions beneath recommendation results."""
+    actions = result.get("actions")
+    if not isinstance(actions, list):
+        return
+
+    user_id = html.escape(str(result.get("user_id", "customer")))
+    st.markdown('<h4 class="activity-heading">Last 3 actions</h4>', unsafe_allow_html=True)
+    st.caption(f"Most recent recorded behaviour for {user_id}, newest first.")
+    if not actions:
+        raw_interest = result.get("interest")
+        interest = str(raw_interest) if raw_interest else "selected"
+        st.info(
+            "No recorded actions were found for this user. "
+            f"Showing recommendations based on their {interest} interest."
+        )
+        return
+
+    action_labels = {
+        "view": "Viewed",
+        "click": "Clicked",
+        "cart": "Added to cart",
+        "purchase": "Purchased",
+    }
+    columns = st.columns(len(actions))
+    for index, raw_action in enumerate(actions):
+        if not isinstance(raw_action, dict):
+            continue
+        action = str(raw_action.get("action", "interaction"))
+        label = html.escape(action_labels.get(action, action.title()))
+        product_name = html.escape(
+            str(raw_action.get("product_name", raw_action.get("item_id", "Unknown product")))
+        )
+        item_id = html.escape(str(raw_action.get("item_id", "Unknown")))
+        category = html.escape(str(raw_action.get("category", "Other")))
+        timestamp = html.escape(format_timestamp(raw_action.get("timestamp", "")))
+        with columns[index]:
+            st.markdown(
+                f"""
+                <div class="activity-card">
+                  <div class="activity-action">{label}</div>
+                  <div class="activity-product">{product_name}</div>
+                  <div class="activity-meta">{item_id} · {category}</div>
+                  <div class="activity-time">{timestamp}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+
 def render_model_snapshot(model_info: dict[str, Any] | None) -> None:
     """Show the current model's most useful operational facts."""
     st.subheader("Model snapshot")
@@ -327,19 +421,47 @@ def render_model_snapshot(model_info: dict[str, Any] | None) -> None:
         st.json(model_info)
 
 
-def render_recommend_tab(query_healthy: bool) -> None:
+def user_labels(users: list[dict[str, Any]]) -> dict[str, str]:
+    """Build readable selectbox labels keyed by user ID."""
+    return {
+        str(user.get("user_id")): (
+            f"{user.get('name', user.get('user_id'))} · "
+            f"{user.get('interest', 'No interest')} ({user.get('user_id')})"
+        )
+        for user in users
+        if user.get("user_id")
+    }
+
+
+def render_recommend_tab(
+    query_healthy: bool,
+    users: list[dict[str, Any]],
+) -> None:
     """Render the read-only recommendation workflow."""
     st.subheader("Find products for a customer")
     st.caption("This is a CQRS query: it reads the current model without changing data.")
     with st.form("recommendation-form"):
         user_column, count_column = st.columns([2, 1])
-        user_id = user_column.text_input("User ID", value="u007", placeholder="u001")
+        labels = user_labels(users)
+        if labels:
+            user_ids = list(labels)
+            user_id = str(
+                user_column.selectbox(
+                    "Customer",
+                    user_ids,
+                    index=min(1, len(user_ids) - 1),
+                    format_func=labels.__getitem__,
+                    key="recommendation-user",
+                )
+            )
+        else:
+            user_id = user_column.text_input("User ID", value="u001", placeholder="u001")
         recommendation_count = count_column.slider("Number of products", 1, 20, 5)
         submitted = st.form_submit_button(
             "Generate recommendations",
             type="primary",
             disabled=not query_healthy,
-            use_container_width=True,
+            width="stretch",
         )
 
     if submitted:
@@ -354,24 +476,50 @@ def render_recommend_tab(query_healthy: bool) -> None:
                         params={"user_id": user_id.strip(), "k": recommendation_count},
                     )
                 st.session_state["recommendation_result"] = result
+                try:
+                    recent_actions = request_json(
+                        "GET",
+                        f"{QUERY_URL}/queries/recent-actions",
+                        params={"user_id": user_id.strip(), "limit": 3},
+                    )
+                except ApiError:
+                    recent_actions = {"user_id": user_id.strip(), "actions": []}
+                st.session_state["recent_actions_result"] = recent_actions
             except ApiError as exc:
                 st.error(str(exc))
 
     stored_result = st.session_state.get("recommendation_result")
     if isinstance(stored_result, dict):
         render_recommendations(stored_result)
+        recent_actions_result = st.session_state.get("recent_actions_result")
+        if isinstance(recent_actions_result, dict):
+            render_recent_actions(recent_actions_result)
 
 
 def render_interaction_tab(
     command_healthy: bool,
     products: list[dict[str, Any]],
+    users: list[dict[str, Any]],
 ) -> None:
     """Render the interaction command workflow."""
     st.subheader("Record customer behaviour")
     st.caption("This command appends one validated event to the interaction log.")
     with st.form("interaction-form"):
         user_column, item_column = st.columns(2)
-        user_id = user_column.text_input("User ID", value="u007", key="interaction-user")
+        labels = user_labels(users)
+        if labels:
+            user_ids = list(labels)
+            user_id = str(
+                user_column.selectbox(
+                    "Customer",
+                    user_ids,
+                    index=min(1, len(user_ids) - 1),
+                    format_func=labels.__getitem__,
+                    key="interaction-user",
+                )
+            )
+        else:
+            user_id = user_column.text_input("User ID", value="u001", key="interaction-user")
         product_labels = {
             str(product.get("item_id")): (
                 f"{product.get('product_name', product.get('item_id'))} ({product.get('item_id')})"
@@ -397,7 +545,7 @@ def render_interaction_tab(
             "Record interaction",
             type="primary",
             disabled=not command_healthy,
-            use_container_width=True,
+            width="stretch",
         )
 
     if submitted:
@@ -421,6 +569,70 @@ def render_interaction_tab(
         st.info("Retrain the model when you want this event reflected in recommendations.")
 
 
+def render_users_tab(
+    command_healthy: bool,
+    users: list[dict[str, Any]],
+) -> None:
+    """Render named user profiles and the add-user command."""
+    st.subheader("Users")
+    st.caption(
+        "New users receive interest-based recommendations until interaction history is trained."
+    )
+
+    created_message = st.session_state.pop("user_created_message", None)
+    if created_message:
+        st.success(str(created_message))
+
+    if users:
+        st.dataframe(
+            [
+                {
+                    "Name": user.get("name", "Unknown"),
+                    "Interest": user.get("interest", "Unknown"),
+                    "User ID": user.get("user_id", "Unknown"),
+                }
+                for user in users
+            ],
+            hide_index=True,
+            width="stretch",
+        )
+    else:
+        st.info("No user profiles are available yet.")
+
+    st.markdown("#### Add a user")
+    with st.form("add-user-form", clear_on_submit=True):
+        name_column, interest_column = st.columns(2)
+        name = name_column.text_input("Name", placeholder="Enter customer name")
+        interest = interest_column.selectbox("Primary interest", INTERESTS)
+        submitted = st.form_submit_button(
+            "Add user",
+            type="primary",
+            disabled=not command_healthy,
+            width="stretch",
+        )
+
+    if not submitted:
+        return
+    if not name.strip():
+        st.warning("Enter a user name.")
+        return
+    try:
+        result = request_json(
+            "POST",
+            f"{COMMAND_URL}/commands/users",
+            payload={"name": name.strip(), "interest": str(interest)},
+        )
+    except ApiError as exc:
+        st.error(str(exc))
+        return
+
+    st.session_state["user_created_message"] = (
+        f"Added {result.get('name', name.strip())} with "
+        f"{result.get('interest', interest)} interests."
+    )
+    st.rerun()
+
+
 def render_training_tab(command_healthy: bool) -> None:
     """Render model training controls and the latest returned summary."""
     st.subheader("Train the read model")
@@ -435,7 +647,7 @@ def render_training_tab(command_healthy: bool) -> None:
             "Train model",
             type="primary",
             disabled=not command_healthy,
-            use_container_width=True,
+            width="stretch",
         )
 
     if submitted:
@@ -480,6 +692,7 @@ def main() -> None:
 
     model_info: dict[str, Any] | None = None
     products: list[dict[str, Any]] = []
+    users: list[dict[str, Any]] = []
     if query_healthy:
         try:
             model_info = request_json("GET", f"{QUERY_URL}/queries/model-info", timeout=5.0)
@@ -492,6 +705,13 @@ def main() -> None:
                 products = [product for product in raw_products if isinstance(product, dict)]
         except ApiError:
             products = []
+        try:
+            user_catalog = request_json("GET", f"{QUERY_URL}/queries/users", timeout=5.0)
+            raw_users = user_catalog.get("users")
+            if isinstance(raw_users, list):
+                users = [user for user in raw_users if isinstance(user, dict)]
+        except ApiError:
+            users = []
 
     with st.sidebar:
         st.markdown("### Service control")
@@ -524,13 +744,15 @@ def main() -> None:
         unsafe_allow_html=True,
     )
 
-    recommend_tab, interaction_tab, training_tab = st.tabs(
-        ["✨ Recommend", "+ Record interaction", "↻ Train model"]
+    recommend_tab, interaction_tab, users_tab, training_tab = st.tabs(
+        ["✨ Recommend", "+ Record interaction", "👥 Users", "↻ Train model"]
     )
     with recommend_tab:
-        render_recommend_tab(query_healthy)
+        render_recommend_tab(query_healthy, users)
     with interaction_tab:
-        render_interaction_tab(command_healthy, products)
+        render_interaction_tab(command_healthy, products, users)
+    with users_tab:
+        render_users_tab(command_healthy, users)
     with training_tab:
         render_training_tab(command_healthy)
 

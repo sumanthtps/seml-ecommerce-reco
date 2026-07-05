@@ -4,20 +4,28 @@ from __future__ import annotations
 
 import threading
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from fastapi import FastAPI, HTTPException, Query
 
 from ecom_ml.api_models import (
+    Action,
+    Interest,
     ProductCatalogResponse,
     ProductInfo,
+    RecentAction,
+    RecentActionsResponse,
     RecommendationItem,
     RecommendationResponse,
+    UserCatalogResponse,
+    UserProfileInfo,
 )
 from ecom_ml.catalog import PRODUCTS, get_product
 from ecom_ml.config import Settings
 from ecom_ml.ml.artifact import METADATA_FILENAME, load_artifact
+from ecom_ml.ml.data import load_interactions
 from ecom_ml.ml.model import CollaborativeFilteringModel
+from ecom_ml.users import load_users
 
 
 class ModelRepository:
@@ -43,10 +51,17 @@ class ModelRepository:
             return self._model, dict(self._metadata)
 
 
-def create_app(*, artifact_dir: Path | None = None) -> FastAPI:
+def create_app(
+    *,
+    artifact_dir: Path | None = None,
+    data_path: Path | None = None,
+    users_path: Path | None = None,
+) -> FastAPI:
     """Build a query service with an injectable artifact location."""
     settings = Settings.from_env()
     repository = ModelRepository(artifact_dir or settings.artifact_dir)
+    resolved_data = data_path or settings.data_path
+    resolved_users = users_path or settings.users_path
     application = FastAPI(
         title="SEML Recommendation Query Service",
         version="1.0.0",
@@ -90,6 +105,57 @@ def create_app(*, artifact_dir: Path | None = None) -> FastAPI:
             ]
         )
 
+    @application.get("/queries/users", response_model=UserCatalogResponse)
+    def users() -> UserCatalogResponse:
+        try:
+            profiles = load_users(resolved_users)
+        except (FileNotFoundError, ValueError) as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        return UserCatalogResponse(
+            users=[
+                UserProfileInfo(
+                    user_id=profile.user_id,
+                    name=profile.name,
+                    interest=cast(Interest, profile.interest),
+                    created_at=profile.created_at,
+                )
+                for profile in profiles
+            ]
+        )
+
+    @application.get("/queries/recent-actions", response_model=RecentActionsResponse)
+    def recent_actions(
+        user_id: str = Query(min_length=1),
+        limit: int = Query(default=3, ge=1, le=10),
+    ) -> RecentActionsResponse:
+        try:
+            rows = load_interactions(resolved_data)
+        except (FileNotFoundError, ValueError) as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+        selected = [row for row in reversed(rows) if row.user_id == user_id][:limit]
+        actions: list[RecentAction] = []
+        for row in selected:
+            product = get_product(row.item_id)
+            actions.append(
+                RecentAction(
+                    event_id=row.event_id,
+                    timestamp=row.timestamp,
+                    user_id=row.user_id,
+                    item_id=row.item_id,
+                    product_name=product.name,
+                    category=product.category,
+                    action=cast(Action, row.action),
+                )
+            )
+        try:
+            profiles = load_users(resolved_users)
+        except (FileNotFoundError, ValueError):
+            profiles = []
+        profile = next((profile for profile in profiles if profile.user_id == user_id), None)
+        interest = cast(Interest, profile.interest) if profile is not None else None
+        return RecentActionsResponse(user_id=user_id, interest=interest, actions=actions)
+
     @application.get("/queries/recommendations", response_model=RecommendationResponse)
     def recommendations(
         user_id: str = Query(min_length=1),
@@ -97,26 +163,50 @@ def create_app(*, artifact_dir: Path | None = None) -> FastAPI:
     ) -> RecommendationResponse:
         try:
             model, _ = repository.get()
-            ranked = model.recommend(user_id, k)
         except (FileNotFoundError, ValueError) as exc:
             raise HTTPException(status_code=503, detail=str(exc)) from exc
-        except KeyError as exc:
-            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
         recommendation_items: list[RecommendationItem] = []
-        for recommendation in ranked:
-            product = get_product(recommendation.item_id)
-            recommendation_items.append(
+        strategy = "item-based-collaborative-filtering"
+        if user_id in model.users:
+            ranked = model.recommend(user_id, k)
+            for recommendation in ranked:
+                product = get_product(recommendation.item_id)
+                recommendation_items.append(
+                    RecommendationItem(
+                        item_id=recommendation.item_id,
+                        product_name=product.name,
+                        category=product.category,
+                        score=recommendation.score,
+                    )
+                )
+        else:
+            try:
+                profiles = load_users(resolved_users)
+            except (FileNotFoundError, ValueError) as exc:
+                raise HTTPException(status_code=503, detail=str(exc)) from exc
+            profile = next((profile for profile in profiles if profile.user_id == user_id), None)
+            if profile is None:
+                raise HTTPException(status_code=404, detail=f"unknown user: {user_id}")
+
+            preferred_products = [
+                product for product in PRODUCTS if product.category == profile.interest
+            ][:k]
+            recommendation_items = [
                 RecommendationItem(
-                    item_id=recommendation.item_id,
+                    item_id=product.item_id,
                     product_name=product.name,
                     category=product.category,
-                    score=recommendation.score,
+                    score=round(1.0 - (index * 0.05), 4),
                 )
-            )
+                for index, product in enumerate(preferred_products)
+            ]
+            strategy = "interest-based-cold-start"
+
         return RecommendationResponse(
             user_id=user_id,
             model_version=model.version,
-            strategy="item-based-collaborative-filtering",
+            strategy=strategy,
             recommendations=recommendation_items,
         )
 

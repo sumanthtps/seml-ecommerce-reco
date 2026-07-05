@@ -9,6 +9,7 @@ services:
     command: uvicorn ecom_ml.command_service.main:app --host 0.0.0.0 --port 8101
     environment:
       SEML_DATA_PATH: /app/data/interactions.csv
+      SEML_USERS_PATH: /app/data/users.csv
       SEML_ARTIFACT_DIR: /app/artifacts
     ports:
       - "8101:8101"
@@ -36,10 +37,13 @@ services:
     image: seml-ecommerce-reco:latest
     command: uvicorn ecom_ml.query_service.main:app --host 0.0.0.0 --port 8102
     environment:
+      SEML_DATA_PATH: /app/data/interactions.csv
+      SEML_USERS_PATH: /app/data/users.csv
       SEML_ARTIFACT_DIR: /app/artifacts
     ports:
       - "8102:8102"
     volumes:
+      - ./data:/app/data:ro
       - ./artifacts:/app/artifacts:ro
     depends_on:
       command-service:

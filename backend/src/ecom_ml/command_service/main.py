@@ -10,20 +10,28 @@ from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, status
 
-from ecom_ml.api_models import InteractionCommand, TrainCommand
+from ecom_ml.api_models import (
+    CreateUserCommand,
+    InteractionCommand,
+    TrainCommand,
+    UserCommandResponse,
+)
 from ecom_ml.config import Settings
 from ecom_ml.ml.data import Interaction, append_interaction
 from ecom_ml.ml.pipeline import train_pipeline
+from ecom_ml.users import append_user, create_user
 
 
 def create_app(
     *,
     data_path: Path | None = None,
+    users_path: Path | None = None,
     artifact_dir: Path | None = None,
 ) -> FastAPI:
     """Build a command service with injectable paths for testing."""
     settings = Settings.from_env()
     resolved_data = data_path or settings.data_path
+    resolved_users = users_path or settings.users_path
     resolved_artifacts = artifact_dir or settings.artifact_dir
     training_lock = threading.Lock()
     application = FastAPI(
@@ -57,6 +65,26 @@ def create_app(
             "event_id": interaction.event_id,
             "pattern": "CQRS-command",
         }
+
+    @application.post(
+        "/commands/users",
+        response_model=UserCommandResponse,
+        status_code=status.HTTP_201_CREATED,
+    )
+    def add_user(command: CreateUserCommand) -> UserCommandResponse:
+        try:
+            profile = create_user(command.name, command.interest)
+            append_user(resolved_users, profile)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return UserCommandResponse(
+            status="created",
+            pattern="CQRS-command",
+            user_id=profile.user_id,
+            name=profile.name,
+            interest=command.interest,
+            created_at=profile.created_at,
+        )
 
     @application.post("/commands/train")
     def train(command: TrainCommand) -> dict[str, Any]:

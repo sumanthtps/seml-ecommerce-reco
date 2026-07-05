@@ -86,6 +86,7 @@ _PRODUCT_NAMES_BY_CATEGORY: dict[str, tuple[str, ...]] = {
         "Hand-Poured Scented Soy Candle",
     ),
 }
+CATEGORIES = tuple(_PRODUCT_NAMES_BY_CATEGORY)
 
 
 def _build_catalog() -> tuple[Product, ...]:

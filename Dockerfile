@@ -20,6 +20,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/opt/venv/bin:$PATH" \
     SEML_DATA_PATH="/app/data/interactions.csv" \
+    SEML_USERS_PATH="/app/data/users.csv" \
     SEML_ARTIFACT_DIR="/app/artifacts"
 
 RUN useradd --create-home --uid 1000 appuser

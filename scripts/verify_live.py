@@ -14,6 +14,7 @@ from urllib.request import urlopen
 
 from ecom_ml.ml.data import generate_demo_interactions
 from ecom_ml.ml.pipeline import train_pipeline
+from ecom_ml.users import generate_default_users
 from run_demo import execute_demo
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -34,6 +35,7 @@ def wait_for(url: str, timeout: float = 20.0) -> None:
 def start_service(module: str, port: int, log_handle: IO[str]) -> subprocess.Popen[str]:
     environment = os.environ.copy()
     environment["SEML_DATA_PATH"] = str(ROOT / "data" / "interactions.csv")
+    environment["SEML_USERS_PATH"] = str(ROOT / "data" / "users.csv")
     environment["SEML_ARTIFACT_DIR"] = str(ROOT / "artifacts")
     return subprocess.Popen(
         [
@@ -57,9 +59,11 @@ def start_service(module: str, port: int, log_handle: IO[str]) -> subprocess.Pop
 def main() -> int:
     data_path = ROOT / "data" / "interactions.csv"
     artifact_dir = ROOT / "artifacts"
+    users_path = ROOT / "data" / "users.csv"
     evidence_dir = ROOT / "evidence"
     evidence_dir.mkdir(exist_ok=True)
     generate_demo_interactions(data_path)
+    generate_default_users(users_path)
     train_pipeline(data_path, artifact_dir)
 
     command_log_path = evidence_dir / "command_service.log"

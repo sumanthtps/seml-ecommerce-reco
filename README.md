@@ -8,6 +8,7 @@ It contains:
 - an item-based collaborative-filtering ML pipeline;
 - separate CQRS command/write and query/read microservices;
 - an interactive Streamlit dashboard for recommendations and model operations;
+- named user profiles with interest-based cold-start recommendations;
 - automated tests, static checks, CI, Docker support, and live verification;
 - GR4ML Business, Analytics Design, and Data Preparation views; and
 - the executed notebook and Word report required for submission.
@@ -126,7 +127,7 @@ backend/tests/        Backend unit and service tests
 frontend/             Streamlit presentation layer
 scripts/              Seed, train, demo, and live-verification commands
 tools/                Diagram, report, and notebook generators
-data/                 Reproducible interaction dataset
+data/                 Reproducible interactions and named user profiles
 artifacts/            Versioned model and metadata used by the demo
 evidence/             GR4ML diagrams and execution evidence
 final_submission/     Submission-ready Group 049 files
