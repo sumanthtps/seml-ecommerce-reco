@@ -690,8 +690,7 @@ def report_content_docx(document: Document) -> None:
         "two views keep model quality and software quality in the same design discussion.",
     )
 
-    architecture_heading = document.add_heading("Objective 2 - System Architecture", level=1)
-    architecture_heading.paragraph_format.page_break_before = True
+    document.add_heading("Objective 2 - System Architecture", level=1)
     document.add_heading("Question 5 - Architecture and Responsibilities", level=2)
     add_image(
         document,
@@ -1087,6 +1086,16 @@ def pdf_styles() -> dict[str, ParagraphStyle]:
             alignment=TA_JUSTIFY,
             spaceAfter=7,
         ),
+        "Reference": ParagraphStyle(
+            "Reference",
+            parent=base["BodyText"],
+            fontName="Helvetica",
+            fontSize=9.5,
+            leading=12.7,
+            textColor=colors.HexColor("#1F2933"),
+            alignment=TA_LEFT,
+            spaceAfter=7,
+        ),
         "H1": ParagraphStyle(
             "H1",
             parent=base["Heading1"],
@@ -1412,7 +1421,6 @@ def build_pdf_story() -> list[Any]:
             ],
             [1.25, 2.4, 2.85],
         ),
-        PageBreak(),
         Paragraph("Objective 2 - System Architecture", PSTYLE["H1"]),
         Paragraph("5. Architecture and Responsibilities", PSTYLE["H2"]),
         pdf_image("system_architecture.png", "Figure 4. Microservices + CQRS system architecture."),
@@ -1622,38 +1630,38 @@ def build_pdf_story() -> list[Any]:
             Paragraph(
                 "<b>R1.</b> Rao, S. (2026). AIMLCZG546 Session 3 lecture slides: Requirements "
                 "Engineering and GR4ML Modeling Notation. BITS Pilani WILP.",
-                PSTYLE["Body"],
+                PSTYLE["Reference"],
             ),
             Paragraph(
                 "<b>R2.</b> Nalchigar, S. and Yu, E. (2020). Designing Business Analytics "
                 "Solutions. https://doi.org/10.1007/s12599-018-0555-z",
-                PSTYLE["Body"],
+                PSTYLE["Reference"],
             ),
             Paragraph(
                 "<b>R3.</b> Sarwar, B. et al. (2001). Item-based collaborative filtering "
                 "recommendation algorithms. https://doi.org/10.1145/371920.372071",
-                PSTYLE["Body"],
+                PSTYLE["Reference"],
             ),
             Paragraph(
                 "<b>R4.</b> Microsoft Azure Architecture Center. CQRS pattern. "
                 "https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs",
-                PSTYLE["Body"],
+                PSTYLE["Reference"],
             ),
             Paragraph(
                 "<b>R5.</b> Microsoft Azure Architecture Center. Architecture styles. "
                 "https://learn.microsoft.com/en-us/azure/architecture/guide/architecture-styles/",
-                PSTYLE["Body"],
+                PSTYLE["Reference"],
             ),
             Paragraph(
                 "<b>R6.</b> scikit-learn. cosine_similarity documentation. "
                 "https://scikit-learn.org/stable/modules/generated/"
                 "sklearn.metrics.pairwise.cosine_similarity.html",
-                PSTYLE["Body"],
+                PSTYLE["Reference"],
             ),
             Paragraph(
                 "<b>R7.</b> FastAPI. Automatic API docs. "
                 "https://fastapi.tiangolo.com/features/#automatic-docs",
-                PSTYLE["Body"],
+                PSTYLE["Reference"],
             ),
             pdf_callout(
                 "Final submission check",
