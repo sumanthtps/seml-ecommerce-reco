@@ -1,181 +1,128 @@
-# SEML E-commerce Recommendation System
+# SEML Assignment I — E-commerce ML Recommendation
 
-A small but **production-shaped** reference implementation of an e-commerce
-product-recommendation system, built for **AIMLCZG546 – Software Engineering for
-Machine Learning, Assignment I**.
+This is the single canonical repository for **AIMLCZG546 — Software
+Engineering for Machine Learning, Assignment I (Group 049)**.
 
-It demonstrates two architectural patterns end to end:
+It contains:
 
-| Pattern | Where | What it buys us |
-|---|---|---|
-| **API Gateway** | [`src/reco/gateway`](src/reco/gateway) | One secured public entry point: bearer-token auth, per-user rate limiting, request correlation, and routing to internal services. |
-| **Event-Driven Architecture** | [`src/reco/recommendation`](src/reco/recommendation) | Activity events are accepted in milliseconds, queued, and processed asynchronously by a background consumer that updates the feature store. |
+- an item-based collaborative-filtering ML pipeline;
+- separate CQRS command/write and query/read microservices;
+- automated tests, static checks, CI, Docker support, and live verification;
+- GR4ML Business, Analytics Design, and Data Preparation views; and
+- the executed notebook and Word report required for submission.
 
-The machine-learning core (item-based collaborative filtering) lives in
-[`src/reco/domain`](src/reco/domain) and is **completely decoupled** from the web
-layer, so it is unit-testable in isolation and the scoring strategy can be
-swapped without touching the services.
-
-> Looking for the original assignment report, notebook, and GR4ML diagrams?
-> They are preserved under [`archive/`](archive).
-
----
+> Before submission, replace every `TO_FILL` value in
+> `submission_details.json`, then regenerate the report and notebook.
 
 ## Architecture
 
+The **Command Service** owns interaction writes and model training. Training
+produces a versioned, immutable model artifact. The **Query Service** loads that
+artifact and serves latency-sensitive top-k recommendation requests without
+modifying training data.
+
+```text
+Storefront / analyst
+        │
+        ├── commands ──► Command Service :8101
+        │                  ├── interaction event log
+        │                  └── ML training pipeline
+        │                              │
+        │                              ▼
+        │                    versioned model artifact
+        │                              │
+        └── queries ───► Query Service :8102
+                                       │
+                                       ▼
+                              top-5 recommendations
 ```
-                       Authorization: Bearer <token>
- ┌──────────┐   HTTP        ┌─────────────────────┐         ┌───────────────────────────┐
- │  Client  │ ───────────►  │     API Gateway     │  ─────► │  Recommendation Service    │
- │ (store)  │    :8000      │  auth · rate-limit  │  :8001  │     (FastAPI, internal)    │
- └──────────┘               │      · routing      │         │                            │
-                            └─────────────────────┘         │  POST /track ──► [ Queue ] │
-                                                            │                     │ async │
-                                                            │                     ▼       │
-                                                            │           [ Event Consumer ]│
-                                                            │                     │       │
-                                                            │                     ▼       │
-                                                            │   [ Feature Store: user×item│
-                                                            │     matrix + item similarity]│
-                                                            │                     │       │
-                                                            │  GET /rank ◄────────┘       │
-                                                            │  item-based CF scoring      │
-                                                            └───────────────────────────┘
-```
 
-See [`docs/architecture.md`](docs/architecture.md) for the full write-up,
-sequence diagrams, and the quality-attribute analysis.
+## Quick start
 
----
-
-## Quickstart
-
-### Option A — Docker (recommended)
+Python 3.11 or newer is required.
 
 ```bash
-docker compose up --build
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt -e ".[dev,report]"
+
+python scripts/seed_data.py
+python scripts/train_and_evaluate.py
 ```
 
-- Gateway Swagger UI: http://localhost:8000/docs
-- The internal service is reachable only inside the compose network (as a real
-  internal service would be).
-
-In another terminal, drive the demo scenario:
+Start the services in separate terminals:
 
 ```bash
-python scripts/run_demo.py            # talks to the gateway on :8000
+# Terminal 1: command/write side
+uvicorn ecom_ml.command_service.main:app --port 8101
+
+# Terminal 2: query/read side
+uvicorn ecom_ml.query_service.main:app --port 8102
 ```
 
-### Option B — Local (two terminals)
+Run the HTTP demonstration:
 
 ```bash
-python -m pip install -e ".[dev,evidence]"
-
-# terminal 1 – internal service
-uvicorn reco.recommendation.main:app --port 8001
-
-# terminal 2 – gateway
-uvicorn reco.gateway.main:app --port 8000
+python scripts/run_demo.py
 ```
 
-Then call the gateway:
+API documentation is available at:
+
+- Command Service: <http://127.0.0.1:8101/docs>
+- Query Service: <http://127.0.0.1:8102/docs>
+
+For a one-command end-to-end check that starts and stops both services:
 
 ```bash
-curl -s "http://localhost:8000/recommend?user_id=u7&k=5" \
-  -H "Authorization: Bearer seml-demo-token"
+python scripts/verify_live.py
 ```
 
-> Common tasks are wrapped in the [`Makefile`](Makefile): `make up`, `make test`,
-> `make check`, `make demo`, `make evidence`, …
-
----
-
-## API reference
-
-### Gateway (public, `:8000`)
-
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| `GET`  | `/health` | – | Gateway + downstream health. |
-| `GET`  | `/recommend?user_id=&k=` | Bearer | Top-k recommendations for a user. |
-| `POST` | `/activity` | Bearer | Record a `{user_id, item_id, action}` event. |
-
-### Recommendation service (internal, `:8001`)
-
-| Method | Path | Description |
-|---|---|---|
-| `GET`  | `/health` | Liveness + consumer status. |
-| `GET`  | `/stats` | Feature-store + queue statistics. |
-| `POST` | `/track` | Enqueue an event (returns `202 Accepted`). |
-| `GET`  | `/rank?user_id=&k=` | Score top-k items on demand. |
-
-`action` is one of `view | click | cart | purchase` (weights `1 / 2 / 3 / 5`).
-
----
-
-## Configuration
-
-All configuration is environment-driven (12-factor) with sensible local defaults;
-see [`.env.example`](.env.example). Each service has its own prefix.
-
-| Variable | Default | Description |
-|---|---|---|
-| `GATEWAY_AUTH_TOKEN` | `seml-demo-token` | Bearer token clients must present. **Override in any real deployment.** |
-| `GATEWAY_RECO_SERVICE_URL` | `http://127.0.0.1:8001` | Downstream service URL. |
-| `GATEWAY_RATE_LIMIT_SECONDS` | `0.25` | Min seconds between requests per key. |
-| `RECO_SEED_DEMO_DATA` | `true` | Seed synthetic data on startup. |
-| `RECO_CONSUMER_POLL_TIMEOUT` | `0.2` | Consumer queue poll timeout (s). |
-| `*_LOG_FORMAT` | `json` | `json` for prod, `console` for local. |
-
----
-
-## Development
+## Quality checks
 
 ```bash
-make install-dev     # editable install + dev tools + pre-commit hooks
-make check           # ruff lint + mypy + pytest  (exactly what CI runs)
-make format          # auto-format & auto-fix
-make cov             # tests with coverage
+ruff check src tests scripts tools
+ruff format --check src tests scripts tools
+mypy --cache-dir=/tmp/seml-mypy-cache
+pytest --cov=ecom_ml --cov-report=term-missing
 ```
 
-Quality gates (also enforced in [CI](.github/workflows/ci.yml) and
-[pre-commit](.pre-commit-config.yaml)):
+The same checks run in GitHub Actions for Python 3.11 and 3.12. Common commands
+are also available through `make help`.
 
-- **ruff** — linting + formatting
-- **mypy** — static type checking (typed throughout)
-- **pytest** — unit (domain) + integration (both services, no live deps via
-  `httpx.MockTransport`)
-
----
-
-## Offline evaluation
-
-The recommender ships with a reproducible **leave-N-out Precision@k** metric:
+## Regenerating assignment artifacts
 
 ```bash
-python scripts/generate_evidence.py      # writes artifacts/offline_metrics.json + plot
+python scripts/verify_live.py
+python tools/generate_assets.py
+python tools/build_report.py
+python tools/build_notebook.py
 ```
 
----
+To additionally generate a PDF:
 
-## Project structure
-
-```
-src/reco/
-├── domain/           # ML core (no web deps): feature store, recommender, evaluation
-├── recommendation/   # internal service: queue, consumer, routes, app factory
-├── gateway/          # public service: auth, rate limiter, routes, app factory
-├── config.py         # pydantic-settings (typed env config)
-├── logging.py        # structured JSON logging + request-id context
-└── middleware.py     # request correlation + access logging
-tests/{unit,integration}/
-scripts/              # demo client + evidence generator
-docs/architecture.md  # design write-up
-archive/              # original assignment submission + flat prototype (preserved)
+```bash
+python tools/build_report.py --with-pdf
 ```
 
----
+## Repository structure
 
-## License
+```text
+src/ecom_ml/          Application and ML source code
+tests/                Unit and service tests
+scripts/              Seed, train, demo, and live-verification commands
+tools/                Diagram, report, and notebook generators
+data/                 Reproducible interaction dataset
+artifacts/            Versioned model and metadata used by the demo
+evidence/             GR4ML diagrams and execution evidence
+final_submission/     Submission-ready Group 049 files
+submission_details.json
+```
 
-MIT — see assignment context. For educational use under AIMLCZG546.
+## Submission files
+
+- `final_submission/G049.ipynb`
+- `final_submission/G049_SEML_Assignment_01_Complete_Report.docx`
+
+Only these two files need to be selected when the portal requests the notebook
+and report. The rest of the repository exists for reproducibility and review.

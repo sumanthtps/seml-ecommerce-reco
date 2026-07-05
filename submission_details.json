@@ -1,0 +1,32 @@
+{
+  "group_number": "G049",
+  "course": "AIMLCZG546 - Software Engineering for Machine Learning",
+  "assignment": "Assignment I",
+  "deadline": "7 July 2026 (per final faculty clarification)",
+  "members": [
+    {
+      "bits_id": "TO_FILL",
+      "name": "TO_FILL",
+      "contribution": "Problem statement, requirements, measurable goals, and quality requirements",
+      "percentage": 25
+    },
+    {
+      "bits_id": "TO_FILL",
+      "name": "TO_FILL",
+      "contribution": "GR4ML Business, Analytics Design, and Data Preparation views",
+      "percentage": 25
+    },
+    {
+      "bits_id": "TO_FILL",
+      "name": "TO_FILL",
+      "contribution": "Microservices and CQRS architecture design and justification",
+      "percentage": 25
+    },
+    {
+      "bits_id": "TO_FILL",
+      "name": "TO_FILL",
+      "contribution": "ML implementation, tests, execution evidence, and report integration",
+      "percentage": 25
+    }
+  ]
+}

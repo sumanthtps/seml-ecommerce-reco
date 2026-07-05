@@ -1,0 +1,1 @@
+"""CQRS query/read service."""

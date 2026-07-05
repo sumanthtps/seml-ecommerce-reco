@@ -11,16 +11,17 @@ concurrency:
 
 jobs:
   quality:
-    name: Lint, type-check, test
+    name: Quality — Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.11", "3.12"]
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
@@ -29,35 +30,33 @@ jobs:
             pyproject.toml
             requirements.txt
 
-      - name: Install
-        run: python -m pip install -e ".[dev,evidence]"
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt -e ".[dev,report]"
 
-      - name: Ruff lint
-        run: ruff check src tests scripts
+      - name: Lint
+        run: ruff check src tests scripts tools
 
-      - name: Ruff format check
-        run: ruff format --check src tests scripts
+      - name: Check formatting
+        run: ruff format --check src tests scripts tools
 
-      - name: Mypy
+      - name: Type-check
         run: mypy
 
-      - name: Pytest
-        run: pytest --cov=reco --cov-report=term-missing
+      - name: Test
+        run: pytest --cov=ecom_ml --cov-report=term-missing
 
   docker:
-    name: Build container image
+    name: Build container
     runs-on: ubuntu-latest
     needs: quality
+
     steps:
       - uses: actions/checkout@v4
-
       - uses: docker/setup-buildx-action@v3
-
-      - name: Build image
-        uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v6
         with:
           context: .
           push: false
-          tags: seml-reco:ci
+          tags: seml-ecommerce-reco:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max

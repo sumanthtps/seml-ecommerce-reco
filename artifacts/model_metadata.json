@@ -1,0 +1,17 @@
+{
+  "model_type": "item-based-collaborative-filtering",
+  "version": "c16386695e1a",
+  "trained_at": "2026-07-05T04:49:22+00:00",
+  "users": 80,
+  "items": 60,
+  "training_events": 961,
+  "metrics": {
+    "precision_at_k": 0.33,
+    "recall_at_k": 0.825,
+    "hit_rate_at_k": 0.95,
+    "catalogue_coverage_at_k": 1.0,
+    "evaluated_users": 80,
+    "k": 5,
+    "holdout_per_user": 2
+  }
+}

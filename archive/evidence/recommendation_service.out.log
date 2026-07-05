@@ -1,7 +1,0 @@
-processed event: {'user_id': 'u7', 'item_id': 'P03', 'action': 'click', 'weight': 2.0, 'event_count': 541, 'processed_at': '2026-06-18T11:43:20+00:00'}
-INFO:     127.0.0.1:51149 - "POST /track HTTP/1.1" 202 Accepted
-processed event: {'user_id': 'u7', 'item_id': 'P04', 'action': 'cart', 'weight': 3.0, 'event_count': 542, 'processed_at': '2026-06-18T11:43:21+00:00'}
-INFO:     127.0.0.1:51152 - "POST /track HTTP/1.1" 202 Accepted
-processed event: {'user_id': 'u7', 'item_id': 'P12', 'action': 'purchase', 'weight': 5.0, 'event_count': 543, 'processed_at': '2026-06-18T11:43:22+00:00'}
-INFO:     127.0.0.1:51154 - "POST /track HTTP/1.1" 202 Accepted
-INFO:     127.0.0.1:51157 - "GET /rank?user_id=u7&k=5 HTTP/1.1" 200 OK

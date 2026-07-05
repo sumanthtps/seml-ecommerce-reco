@@ -1,73 +1,72 @@
-"""Drive a short scenario through the gateway and print the transcript.
-
-Both services must be running first - either ``docker compose up`` or two local
-uvicorn processes (see the README). Examples::
-
-    python scripts/run_demo.py
-    python scripts/run_demo.py --gateway http://localhost:8000 --save artifacts/demo.json
-"""
+"""Exercise CQRS commands and queries through the two live microservices."""
 
 from __future__ import annotations
 
 import argparse
 import json
 import os
-import sys
-import time
 from pathlib import Path
+from typing import Any
 
 import httpx
-
-EVENTS = [
-    {"user_id": "u7", "item_id": "P03", "action": "click"},
-    {"user_id": "u7", "item_id": "P04", "action": "cart"},
-    {"user_id": "u7", "item_id": "P12", "action": "purchase"},
-]
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--gateway", default=os.environ.get("GATEWAY_URL", "http://127.0.0.1:8000"))
-    parser.add_argument("--token", default=os.environ.get("GATEWAY_AUTH_TOKEN", "seml-demo-token"))
-    parser.add_argument("--user", default="u7")
-    parser.add_argument("--k", type=int, default=5)
-    parser.add_argument("--save", type=Path, default=None, help="Write the JSON transcript here.")
+    parser.add_argument(
+        "--command-url",
+        default=os.environ.get("SEML_COMMAND_URL", "http://127.0.0.1:8101"),
+    )
+    parser.add_argument(
+        "--query-url",
+        default=os.environ.get("SEML_QUERY_URL", "http://127.0.0.1:8102"),
+    )
+    parser.add_argument("--save", type=Path)
     return parser.parse_args()
+
+
+def execute_demo(command_url: str, query_url: str) -> dict[str, Any]:
+    """Send one write, rebuild the model, and query the new read model."""
+    transcript: dict[str, Any] = {}
+    with httpx.Client(timeout=30.0) as client:
+        write_response = client.post(
+            f"{command_url}/commands/interactions",
+            json={"user_id": "u007", "item_id": "P012", "action": "purchase"},
+        )
+        write_response.raise_for_status()
+        transcript["interaction_command"] = write_response.json()
+
+        train_response = client.post(
+            f"{command_url}/commands/train",
+            json={"k": 5, "holdout_per_user": 2},
+        )
+        train_response.raise_for_status()
+        transcript["train_command"] = train_response.json()
+
+        query_response = client.get(
+            f"{query_url}/queries/recommendations",
+            params={"user_id": "u007", "k": 5},
+        )
+        query_response.raise_for_status()
+        transcript["recommendation_query"] = query_response.json()
+
+        info_response = client.get(f"{query_url}/queries/model-info")
+        info_response.raise_for_status()
+        transcript["model_info"] = info_response.json()
+    return transcript
 
 
 def main() -> int:
     args = parse_args()
-    headers = {"Authorization": f"Bearer {args.token}"}
-    transcript: list[dict] = []
-
     try:
-        with httpx.Client(base_url=args.gateway, headers=headers, timeout=10.0) as client:
-            for event in EVENTS:
-                body = client.post("/activity", json=event).raise_for_status().json()
-                transcript.append({"request": "POST /activity", "body": event, "response": body})
-                print("POST /activity ->", json.dumps(body, indent=2))
-                time.sleep(0.35)  # respect the gateway's per-user rate limit
-
-            time.sleep(0.6)  # give the background consumer time to drain the queue
-            body = (
-                client.get("/recommend", params={"user_id": args.user, "k": args.k})
-                .raise_for_status()
-                .json()
-            )
-            transcript.append(
-                {"request": f"GET /recommend?user_id={args.user}&k={args.k}", "response": body}
-            )
-            print("GET /recommend ->", json.dumps(body, indent=2))
-    except httpx.ConnectError:
-        print(
-            f"ERROR: cannot connect to {args.gateway}. Start the services first.", file=sys.stderr
-        )
-        return 1
-    except httpx.HTTPStatusError as exc:
-        print(f"ERROR: {exc.response.status_code} {exc.response.text}", file=sys.stderr)
+        transcript = execute_demo(args.command_url, args.query_url)
+    except httpx.HTTPError as exc:
+        print(f"ERROR: {exc}")
         return 1
 
-    if args.save is not None:
+    print("=== CQRS + MICROSERVICES LIVE DEMO ===")
+    print(json.dumps(transcript, indent=2))
+    if args.save:
         args.save.parent.mkdir(parents=True, exist_ok=True)
         args.save.write_text(json.dumps(transcript, indent=2), encoding="utf-8")
         print(f"Saved transcript to {args.save}")
